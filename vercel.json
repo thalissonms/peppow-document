@@ -7,7 +7,7 @@
       "src/pages/api/**/*.ts": {
         "memory": 1536,
         "maxDuration": 10000,
-        "runtime": "vercel-node@3.0.0"
+        "runtime": "nodejs18.x"
       }
     }
 }
