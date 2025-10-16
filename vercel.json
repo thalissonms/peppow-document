@@ -1,0 +1,11 @@
+{
+  "buildCommand": "yarn build",
+  "framework": "nextjs",
+  "installCommand": "yarn install",
+  "functions": {
+    "src/pages/api/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  }
+}
