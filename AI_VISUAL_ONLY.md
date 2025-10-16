@@ -116,9 +116,6 @@ Formaliza a linguagem corporativa (altera texto)
 
 ## ⚙️ Configuração
 
-# Backend (para geração de PDF com IA)
-GEMINI_API_KEY=
-```
 
 ### Arquivos Modificados
 1. **`src/pages/api/enhance-html.ts`** - Endpoint para melhorar HTML
