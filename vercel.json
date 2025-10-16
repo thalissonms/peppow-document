@@ -5,7 +5,7 @@
   "functions": {
     "src/pages/api/**/*.ts": {
       "memory": 1536,
-      "maxDuration": 20,
+      "maxDuration": 200000,
       "runtime": "nodejs20.x"
     }
   }
