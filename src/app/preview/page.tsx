@@ -1092,7 +1092,7 @@ export default function PreviewPage() {
           </aside>
         </div>
       )}
-      <div className="absolute bottom-0.5 w-screen flex items-center justify-center">
+      <div className="absolute bottom-0.5 w-full flex items-center justify-center">
         <span className="text-xs text-amber-500">Versão Beta 1.0.1 - TMS</span>
       </div>
     </div>
