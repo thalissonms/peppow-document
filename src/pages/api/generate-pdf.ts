@@ -4,6 +4,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import mammoth, { Image as MammothImage } from "mammoth";
 import puppeteer from "puppeteer";
+import chromium from "@sparticuz/chromium";
 
 export const config = {
   api: {
@@ -362,9 +363,16 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       title: fallbackTitle, // novo
     });
 
+    // Configuração para funcionar tanto localmente quanto na Vercel
+    const isProduction = process.env.NODE_ENV === 'production';
     const browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: isProduction 
+        ? [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"]
+        : ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath: isProduction 
+        ? await chromium.executablePath()
+        : puppeteer.executablePath(),
     });
 
     const page = await browser.newPage();

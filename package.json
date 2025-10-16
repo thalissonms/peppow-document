@@ -12,6 +12,7 @@
   "dependencies": {
     "@ckeditor/ckeditor5-build-classic": "41.4.2",
     "@fontsource/kanit": "^5.2.8",
+    "@sparticuz/chromium": "^141.0.0",
     "formidable": "^3.5.4",
     "lucide-react": "^0.545.0",
     "mammoth": "^1.11.0",
