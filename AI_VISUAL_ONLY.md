@@ -115,14 +115,6 @@ Formaliza a linguagem corporativa (altera texto)
 - ✅ **Rápido** - Gemini 2.5 Flash processa em segundos
 
 ## ⚙️ Configuração
-
-### Variáveis de Ambiente
-```bash
-# Frontend (para botão "Melhorar com Gemini")
-NEXT_PUBLIC_GEMINI_API_KEY=AIzaSyAg4ozib6_Vbja1H2hTXWHh8PkSTd4HqaQ
-
-# Backend (para geração de PDF com IA)
-GEMINI_API_KEY=AIzaSyAg4ozib6_Vbja1H2hTXWHh8PkSTd4HqaQ
 ```
 
 ### Arquivos Modificados

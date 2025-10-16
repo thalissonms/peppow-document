@@ -1,12 +1,12 @@
 {
-  "buildCommand": "yarn build",
-  "framework": "nextjs",
-  "installCommand": "yarn install",
-  "functions": {
-    "src/pages/api/**/*.ts": {
-      "memory": 1536,
-      "maxDuration": 20,
-      "runtime": "nodejs20.x"
+    "buildCommand": "yarn build",
+    "framework": "nextjs",
+    "installCommand": "yarn install",
+    "functions": {
+        "src/pages/api/**/*.ts": {
+            "memory": 1536,
+            "maxDuration": 10000,
+            "runtime": "vercel-node@3.0.0"
+        }
     }
-  }
 }
