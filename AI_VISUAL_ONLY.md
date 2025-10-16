@@ -115,6 +115,9 @@ Formaliza a linguagem corporativa (altera texto)
 - ✅ **Rápido** - Gemini 2.5 Flash processa em segundos
 
 ## ⚙️ Configuração
+
+# Backend (para geração de PDF com IA)
+GEMINI_API_KEY=
 ```
 
 ### Arquivos Modificados
