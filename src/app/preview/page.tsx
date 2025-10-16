@@ -46,6 +46,7 @@ export default function PreviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
+  const [inlineTemplateCss, setInlineTemplateCss] = useState<string>("");
   const ckRef = useRef<Editor | null>(null);
   const editorHostRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -62,6 +63,24 @@ export default function PreviewPage() {
   useEffect(() => {
     latestHtmlRef.current = html;
   }, [html]);
+
+  // Carrega e inline-a o CSS do template para evitar FOUC no iframe
+  useEffect(() => {
+    let aborted = false;
+    (async () => {
+      try {
+        const resp = await fetch("/templates/document/style.css", { cache: "force-cache" });
+        if (!resp.ok) return;
+        const css = await resp.text();
+        if (!aborted) setInlineTemplateCss(css);
+      } catch {
+        // ignora; cai no fallback com <link>
+      }
+    })();
+    return () => {
+      aborted = true;
+    };
+  }, []);
 
   const resetDocument = () => {
     // Destrói o editor caso exista e reseta todos os estados para o inicial
@@ -984,7 +1003,9 @@ export default function PreviewPage() {
                     <head>
                       <meta charset='utf-8' />
                       <meta name='viewport' content='width=device-width, initial-scale=1' />
-                      <link rel='stylesheet' href='/templates/document/style.css' />
+                      ${inlineTemplateCss
+                        ? `<style>${inlineTemplateCss.replace(/<\//g, '<\\/')}</style>`
+                        : `<link rel='preload' href='/templates/document/style.css' as='style' /><link rel='stylesheet' href='/templates/document/style.css' />`}
                     </head>
                     <body class='doc'>
                       <div class='main-container'>
@@ -1071,6 +1092,9 @@ export default function PreviewPage() {
           </aside>
         </div>
       )}
+      <div className="absolute bottom-0.5 w-screen flex items-center justify-center">
+        <span className="text-xs text-amber-500">Versão Beta 1.0.1 - TMS</span>
+      </div>
     </div>
   );
 }

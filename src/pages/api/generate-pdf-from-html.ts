@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 
 type DocumentMeta = {
@@ -449,6 +449,10 @@ const inlineCssAssets = async (styles: string, templateDir: string) => {
         return "image/webp";
       case ".gif":
         return "image/gif";
+      case ".woff2":
+        return "font/woff2";
+      case ".woff":
+        return "font/woff";
       default:
         return "application/octet-stream";
     }
@@ -521,6 +525,10 @@ const inlineHtmlImgAssets = async (html: string, templateDir: string) => {
         return "image/webp";
       case ".gif":
         return "image/gif";
+      case ".woff2":
+        return "font/woff2";
+      case ".woff":
+        return "font/woff";
       default:
         return "application/octet-stream";
     }
@@ -686,15 +694,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Configuração para funcionar tanto localmente quanto na Vercel
     const isProduction = process.env.NODE_ENV === 'production';
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: isProduction 
-        ? [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"]
-        : ["--no-sandbox", "--disable-setuid-sandbox"],
-      executablePath: isProduction 
-        ? await chromium.executablePath()
-        : puppeteer.executablePath(),
-    });
+    let browser;
+    if (isProduction) {
+      browser = await puppeteer.launch({
+        args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+    } else {
+      const pptr = await import("puppeteer");
+      browser = await pptr.default.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      });
+    }
     const page = await browser.newPage();
     await page.setContent(documentHtml, { waitUntil: "networkidle0" });
     const pdfBuffer = await page.pdf({
