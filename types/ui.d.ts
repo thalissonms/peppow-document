@@ -20,3 +20,5 @@ export type BrandConfig = {
     accentColor: string;
     backgroundColor: string;
 };
+
+export type PdfLayout = "padrao" | "a4" | "apresentacao";

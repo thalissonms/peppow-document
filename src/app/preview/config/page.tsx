@@ -276,6 +276,7 @@ export default function App() {
                     onAIOptionsChange={setAiOptions}
                     onEnhance={handleEnhanceWithAI}
                     loading={loading}
+                    pdfLayout={pdfLayout}
                   />
                   <DocumentPreview
                     previewHTML={previewHTML}

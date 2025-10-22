@@ -1,5 +1,5 @@
 import { Sparkles } from "lucide-react";
-import { DocumentMeta, AIOptions } from "@/types/ui";
+import { DocumentMeta, AIOptions, PdfLayout } from "@/types/ui";
 import {
   Card,
   CardContent,
@@ -27,6 +27,7 @@ interface DocumentEditorProps {
   onAIOptionsChange: (options: AIOptions) => void;
   onEnhance: () => void;
   loading?: boolean;
+  pdfLayout: PdfLayout;
 }
 
 export const DocumentEditor = ({
@@ -36,7 +37,25 @@ export const DocumentEditor = ({
   onAIOptionsChange,
   onEnhance,
   loading = false,
+  pdfLayout,
 }: DocumentEditorProps) => {
+  const showPaginationLegend = pdfLayout !== "padrao";
+  const paginationCopy: Record<PdfLayout, { title: string; description: string }> = {
+    padrao: {
+      title: "Paginação desativada",
+      description: "O conteúdo flui sem quebras automáticas.",
+    },
+    a4: {
+      title: "Paginação A4 ativa",
+      description:
+        "Cada linha tracejada no editor marca o final de uma página A4 (297 mm ≈ 1123 px). Ajuste o conteúdo para evitar cortes inesperados.",
+    },
+    apresentacao: {
+      title: "Paginação Apresentação (16:9)",
+      description:
+        "Cada linha tracejada representa um slide 16:9 (≈ 900 px de altura). Organize blocos para que caibam em cada slide.",
+    },
+  };
   return (
     <div className="space-y-4">
       <Card className="border-[rgba(255,94,43,0.25)]">
@@ -103,6 +122,37 @@ export const DocumentEditor = ({
               disabled={loading}
             />
           </div>
+          {showPaginationLegend && (
+            <div className="rounded-lg border border-dashed border-[#ff5e2b]/40 bg-[#fff9d5]/60 p-3 text-xs text-[#154C71]/90">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-[#ff5e2b]">
+                  {paginationCopy[pdfLayout].title}
+                </span>
+                <span className="rounded-full bg-[#ff5e2b]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#ff5e2b]">
+                  Quebra visual
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] text-[#154C71]/80">
+                {paginationCopy[pdfLayout].description}
+              </p>
+              <div className="mt-3 grid gap-2">
+                {[0, 1].map((sample) => (
+                  <div
+                    key={sample}
+                    className="relative h-12 rounded-md border border-[#ff5e2b]/25 bg-white/80"
+                  >
+                    <div className="absolute inset-x-3 bottom-0 border-t border-dashed border-[#ff5e2b]/60" />
+                    <span className="absolute left-3 bottom-1 text-[10px] font-semibold uppercase tracking-widest text-[#154C71]/70">
+                      Página {sample + 1}
+                    </span>
+                    <span className="absolute right-3 bottom-1 text-[10px] font-semibold uppercase tracking-widest text-[#ff5e2b]">
+                      Quebra
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

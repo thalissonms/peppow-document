@@ -80,12 +80,13 @@ import {
 import { Button } from "./ui/Button";
 import { Separator } from "./ui/Separator";
 import { EditorHelp } from "./EditorHelper";
-import { BrandConfig } from "@/types/ui";
+import { BrandConfig, PdfLayout } from "@/types/ui";
 
 interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
   brandConfig: BrandConfig;
+  pdfLayout?: PdfLayout;
 }
 
 // Plugin para sincronizar conteúdo inicial
@@ -526,6 +527,7 @@ export const RichTextEditor = ({
   content,
   onChange,
   brandConfig,
+  pdfLayout = "padrao",
 }: RichTextEditorProps) => {
   const initialConfig = {
     namespace: "DocumentEditor",
@@ -581,11 +583,48 @@ export const RichTextEditor = ({
     });
   };
 
+  const resolvedLayout = pdfLayout;
+  const pageBreakHeight = resolvedLayout === "a4" ? 1123 : resolvedLayout === "apresentacao" ? 900 : 0;
+  const layoutCss =
+    resolvedLayout !== "padrao"
+      ? `
+            .doc[data-layout="${resolvedLayout}"] .editor-container {
+              --page-break-height: ${pageBreakHeight}px;
+            }
+            .doc[data-layout="${resolvedLayout}"] .editor-container::before {
+              content: "";
+              position: absolute;
+              inset: 0;
+              pointer-events: none;
+              background-image: linear-gradient(
+                to bottom,
+                transparent 0,
+                transparent calc(var(--page-break-height) - 2px),
+                rgba(255, 94, 43, 0.4) calc(var(--page-break-height) - 2px),
+                rgba(255, 94, 43, 0.4) calc(var(--page-break-height)),
+                transparent calc(var(--page-break-height))
+              );
+              background-size: 100% var(--page-break-height);
+              background-repeat: repeat-y;
+            }
+          `
+      : `
+            .doc[data-layout='padrao'] .editor-container::before {
+              content: none;
+            }
+          `;
+  const legendCopy =
+    resolvedLayout === "a4"
+      ? "As linhas tracejadas mostram onde cada página A4 termina."
+      : resolvedLayout === "apresentacao"
+      ? "As linhas tracejadas representam o fim de cada slide 16:9."
+      : null;
+
   return (
     <div className="border border-[rgba(255,94,43,0.2)] rounded-xl overflow-hidden bg-white">
       <LexicalComposer initialConfig={initialConfig}>
         <ToolbarPlugin brandConfig={brandConfig} />
-        <div className="doc">
+        <div className="doc" data-layout={pdfLayout}>
           <style>{`
             /* Estilos do editor usando as mesmas variáveis CSS do style.css */
             .doc {
@@ -608,7 +647,14 @@ export const RichTextEditor = ({
               min-height: 600px;
               padding: 2rem;
               font-family: 'Kanit', 'Segoe UI', Arial, Helvetica, sans-serif;
+              position: relative;
             }
+
+            .doc .editor-container::before {
+              content: none;
+            }
+
+            ${layoutCss}
             
             /* Headings - igual ao style.css */
             .doc .editor-heading-h1,
@@ -876,6 +922,16 @@ export const RichTextEditor = ({
           <AutoFocusPlugin />
         </div>
       </LexicalComposer>
+      {legendCopy && (
+        <div className="mt-3 flex items-center gap-3 rounded-md border border-dashed border-[#ff5e2b]/40 bg-[#fff9d5]/60 px-3 py-2 text-xs text-[#154C71]/80">
+          <span className="h-px flex-1 bg-linear-to-r from-transparent via-[#ff5e2b]/60 to-transparent" />
+          <span className="whitespace-nowrap font-medium text-[#ff5e2b]">
+            Quebra de página
+          </span>
+          <span className="h-px flex-1 bg-linear-to-r from-transparent via-[#ff5e2b]/60 to-transparent" />
+          <span className="ml-2 text-[11px] text-[#154C71]/70">{legendCopy}</span>
+        </div>
+      )}
     </div>
   );
 };

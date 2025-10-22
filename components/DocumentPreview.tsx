@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "./ui/Select";
 import { RichTextEditor } from "./RichTextEditor";
-import { BrandConfig } from "@/types/ui";
+import { BrandConfig, PdfLayout } from "@/types/ui";
 
 interface DocumentPreviewProps {
   previewHTML: string;
@@ -26,8 +26,8 @@ interface DocumentPreviewProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   brandConfig: BrandConfig;
   loading?: boolean;
-  pdfLayout?: "padrao" | "a4" | "apresentacao";
-  onPdfLayoutChange?: (layout: "padrao" | "a4" | "apresentacao") => void;
+  pdfLayout?: PdfLayout;
+  onPdfLayoutChange?: (layout: PdfLayout) => void;
 }
 
 export const DocumentPreview = ({
@@ -72,7 +72,10 @@ export const DocumentPreview = ({
           </div>
           <div className="flex gap-2 items-center">
             {/* Seletor de layout do PDF */}
-            <Select value={pdfLayout} onValueChange={onPdfLayoutChange}>
+            <Select
+              value={pdfLayout}
+              onValueChange={(value) => onPdfLayoutChange?.(value as PdfLayout)}
+            >
               <SelectTrigger className="w-auto border-[rgba(255,94,43,0.35)] hover:border-[#ff5e2b]">
                 <SelectValue />
               </SelectTrigger>
@@ -125,6 +128,7 @@ export const DocumentPreview = ({
             content={contentHTML}
             onChange={onContentChange}
             brandConfig={brandConfig}
+            pdfLayout={pdfLayout}
           />
         )}
       </CardContent>
