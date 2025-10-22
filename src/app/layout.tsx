@@ -24,7 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="overflow-x-hidden">
+    <html lang="en" className="bg-[#FFF9D5] min-w-full">
+      {/* Top Gradient Line */}
+      <div className="absolute top-0 left-0 right-0 h-[5px] bg-linear-to-r from-[#ff5e2b] to-[#ff7e4d] opacity-60" />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

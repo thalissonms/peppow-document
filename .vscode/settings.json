@@ -1,0 +1,13 @@
+{
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "never",
+    "source.fixAll.eslint": "never"
+  },
+  "eslint.format.enable": false,
+  "eslint.experimental.useFlatConfig": true,
+  "prettier.requireConfig": true,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true
+}

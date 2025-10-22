@@ -47,6 +47,7 @@ export default function PreviewPage() {
   const [isDragActive, setIsDragActive] = useState(false);
   const [currentFileName, setCurrentFileName] = useState<string | null>(null);
   const [inlineTemplateCss, setInlineTemplateCss] = useState<string>("");
+  const [pdfLayout, setPdfLayout] = useState<"padrao" | "a4" | "apresentacao">("padrao");
   const ckRef = useRef<Editor | null>(null);
   const editorHostRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -369,7 +370,8 @@ export default function PreviewPage() {
         body: JSON.stringify({ 
           html, 
           meta,
-          aiEnhancement: undefined // Não aplica IA aqui, já foi aplicado no preview
+          aiEnhancement: undefined, // Não aplica IA aqui, já foi aplicado no preview
+          pdfLayout,
         }),
       });
       if (!resp.ok) {
@@ -431,7 +433,7 @@ export default function PreviewPage() {
           className="flex items-center gap-3 p-3.5 rounded-[10px] bg-[rgba(255,94,43,0.1)] border border-[rgba(255,94,43,0.25)] text-[#ff5e2b] font-['Kanit',sans-serif] font-semibold shadow-lg shadow-[rgba(255,94,43,0.2)] animate-slideDown"
           role="alert"
         >
-          <span className="grid place-items-center w-6 h-6 rounded-full bg-white text-[#ff5e2b] font-bold flex-shrink-0">
+          <span className="grid place-items-center w-6 h-6 rounded-full bg-white text-[#ff5e2b] font-bold shrink-0">
             !
           </span>
           <span>{error}</span>
@@ -451,7 +453,7 @@ export default function PreviewPage() {
             </div>
 
             <div
-              className={`h-[30rem] flex flex-col justify-center items-center p-8 rounded-[10px] border-2 border-dashed transition-all duration-300 cursor-pointer ${isDragActive ? "border-[#ff5e2b] bg-[rgba(255,94,43,0.1)] scale-102" : "border-[rgba(255,94,43,0.25)] bg-[rgba(255,255,255,0.5)]"} ${loading && activeProcess === "upload" ? "opacity-60" : ""}`}
+              className={`h-120 flex flex-col justify-center items-center p-8 rounded-[10px] border-2 border-dashed transition-all duration-300 cursor-pointer ${isDragActive ? "border-[#ff5e2b] bg-[rgba(255,94,43,0.1)] scale-102" : "border-[rgba(255,94,43,0.25)] bg-[rgba(255,255,255,0.5)]"} ${loading && activeProcess === "upload" ? "opacity-60" : ""}`}
               role="button"
               tabIndex={0}
               onClick={onDropZoneClick}
@@ -823,7 +825,7 @@ export default function PreviewPage() {
               </div>
 
               {/* Editor Section */}
-              <div className="space-y-3 max-h-[150rem] mt-8">
+              <div className="space-y-3 max-h-600 mt-8">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-['Kanit',sans-serif] font-semibold text-[#154c71]">
                     Editor visual
@@ -926,7 +928,19 @@ export default function PreviewPage() {
                       template.
                     </p>
                   </div>
-                  <div className="flex gap-2 ml-3 flex-shrink-0">
+                  <div className="flex gap-2 ml-3 shrink-0 items-center">
+                    <label htmlFor="pdf-layout" className="sr-only">Formato do PDF</label>
+                    <select
+                      id="pdf-layout"
+                      value={pdfLayout}
+                      onChange={(e) => setPdfLayout(e.target.value as "padrao" | "a4" | "apresentacao")}
+                      className="px-3 py-2 rounded-[10px] border border-[rgba(255,94,43,0.25)] bg-white text-[#152937] text-sm font-['Kanit',sans-serif] hover:border-[#ff5e2b] focus:outline-none focus:ring-1 focus:ring-[#ff5e2b]"
+                      title="Formato de saída do PDF"
+                    >
+                      <option value="padrao">Padrão (sem paginação)</option>
+                      <option value="a4">A4 (páginas A4)</option>
+                      <option value="apresentacao">Apresentação (16:9)</option>
+                    </select>
                     <button
                       type="button"
                       onClick={onGeneratePdf}
@@ -991,7 +1005,7 @@ export default function PreviewPage() {
               </div>
 
               <div
-                className={`${isPreviewFullscreen ? "flex-1 overflow-hidden rounded-b-3xl" : ""} ${isEditorReady && "h-[150rem]"}`}
+                className={`${isPreviewFullscreen ? "flex-1 overflow-hidden rounded-b-3xl" : ""} ${isEditorReady && "h-600"}`}
               >
                 {shouldAttachEditor ? (
                   <iframe

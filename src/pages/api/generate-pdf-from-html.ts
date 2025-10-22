@@ -3,6 +3,8 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { DEFAULT_BRAND_CONFIG } from "@/lib/constants";
+import { getCachedCustomizedCSS } from "@/lib/styleGenerator";
 
 type DocumentMeta = {
   headerLabel: string;
@@ -17,6 +19,14 @@ type AIEnhancementOptions = {
   mode?: "grammar" | "clarity" | "professional" | "full";
   provider?: "gemini" | "openai" | "groq" | "ollama";
   apiKey?: string;
+};
+
+type BrandConfig = {
+  logo: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  backgroundColor: string;
 };
 
 // Função para melhorar o HTML usando IA (Google Gemini ou OpenAI)
@@ -177,17 +187,17 @@ Seção com número circular:
 <div class="flex gap-[10px] items-center mb-[20px]">
   <div class="relative size-[38px]">
     <div class="bg-[rgba(255,94,43,0.2)] rounded-[5px] size-full border-[0.5px] border-[#ff5e2b]"></div>
-    <div class="absolute inset-0 flex items-center justify-center font-['Kanit:Bold',_sans-serif] text-[22px] text-[#ff5e2b]">1</div>
+    <div class="absolute inset-0 flex items-center justify-center font-['Kanit:Bold',sans-serif] text-[22px] text-[#ff5e2b]">1</div>
   </div>
-  <h2 class="font-['Kanit:Bold',_sans-serif] text-[26px] text-[#ff5e2b]">Título</h2>
+  <h2 class="font-['Kanit:Bold',sans-serif] text-[26px] text-[#ff5e2b]">Título</h2>
 </div>
 
 Lista estilizada:
 <ul class="space-y-[5px]">
   <li class="flex gap-[5px]">
     <span class="text-[#ff5e2b]">•</span>
-    <span class="font-['Kanit:Regular',_sans-serif] text-[12px] text-[#152937]">
-      <strong class="font-['Kanit:Medium',_sans-serif]">Item:</strong> Descrição
+    <span class="font-['Kanit:Regular',sans-serif] text-[12px] text-[#152937]">
+      <strong class="font-['Kanit:Medium',sans-serif]">Item:</strong> Descrição
     </span>
   </li>
 </ul>
@@ -196,25 +206,25 @@ Tabela profissional:
 <table class="w-full border-collapse">
   <thead>
     <tr class="bg-[rgba(255,94,43,0.8)]">
-      <th class="px-[15px] py-[10px] font-['Kanit:SemiBold',_sans-serif] text-[#fff9d5]">Coluna</th>
+      <th class="px-[15px] py-[10px] font-['Kanit:SemiBold',sans-serif] text-[#fff9d5]">Coluna</th>
     </tr>
   </thead>
   <tbody>
     <tr class="bg-[rgba(255,255,255,0.9)]">
-      <td class="px-[15px] py-[10px] font-['Kanit:Regular',_sans-serif] text-[14px]">Dado</td>
+      <td class="px-[15px] py-[10px] font-['Kanit:Regular',sans-serif] text-[14px]">Dado</td>
     </tr>
   </tbody>
 </table>
 
 Card de destaque:
 <div class="bg-[#152937] rounded-[10px] p-[15px]">
-  <p class="font-['Kanit:SemiBold',_sans-serif] text-[#afcde1] text-[14px]">Título:</p>
-  <p class="font-['Kanit:Regular',_sans-serif] text-[#fff9d5] text-[14px]">Conteúdo</p>
+  <p class="font-['Kanit:SemiBold',sans-serif] text-[#afcde1] text-[14px]">Título:</p>
+  <p class="font-['Kanit:Regular',sans-serif] text-[#fff9d5] text-[14px]">Conteúdo</p>
 </div>
 
 Badge/Tag:
 <div class="inline-flex bg-[rgba(21,76,113,0.25)] border border-[#154c71] rounded-[5px] px-[10px] py-[5px]">
-  <span class="font-['Kanit:SemiBold',_sans-serif] text-[#154c71] text-[14px]">Tag</span>
+  <span class="font-['Kanit:SemiBold',sans-serif] text-[#154c71] text-[14px]">Tag</span>
 </div>
 
 REGRAS CRÍTICAS:
@@ -420,164 +430,6 @@ const enhanceHeadings = (html: string) => {
   });
 };
 
-const inlineCssAssets = async (styles: string, templateDir: string) => {
-  // Substitui url(...) por data URLs quando o arquivo existir localmente
-  // Suporta caminhos absolutos "/foo.png" (em public) e relativos ao templateDir
-  const urlRegex = /url\(\s*(['\"]?)([^)\'\"]+)\1\s*\)/g;
-  const matches: Array<{ full: string; ref: string }> = [];
-  let m: RegExpExecArray | null;
-  while ((m = urlRegex.exec(styles)) !== null) {
-    const ref = m[2];
-    if (!ref || ref.startsWith("data:") || ref.startsWith("http")) continue;
-    matches.push({ full: m[0], ref });
-  }
-  if (matches.length === 0) return styles;
-
-  const uniqueRefs = Array.from(new Set(matches.map((x) => x.ref)));
-
-  const getMime = (p: string) => {
-    const ext = path.extname(p).toLowerCase();
-    switch (ext) {
-      case ".png":
-        return "image/png";
-      case ".jpg":
-      case ".jpeg":
-        return "image/jpeg";
-      case ".svg":
-        return "image/svg+xml";
-      case ".webp":
-        return "image/webp";
-      case ".gif":
-        return "image/gif";
-      case ".woff2":
-        return "font/woff2";
-      case ".woff":
-        return "font/woff";
-      default:
-        return "application/octet-stream";
-    }
-  };
-
-  const refToDataUrl = new Map<string, string>();
-  await Promise.all(
-    uniqueRefs.map(async (ref) => {
-      const refNoQuery = ref.split("?")[0];
-      const candidates: string[] = [];
-      if (refNoQuery.startsWith("/")) {
-        // caminho em public
-        candidates.push(path.join(process.cwd(), "public", refNoQuery.slice(1)));
-      } else {
-        // relativo ao template
-        candidates.push(path.join(templateDir, refNoQuery));
-        // também tente relativo a public
-        candidates.push(path.join(process.cwd(), "public", refNoQuery));
-      }
-
-      for (const filePath of candidates) {
-        try {
-          const data = await fs.readFile(filePath);
-          const mime = getMime(filePath);
-          const base64 = data.toString("base64");
-          refToDataUrl.set(ref, `data:${mime};base64,${base64}`);
-          break;
-        } catch {
-          // tenta próximo candidato
-        }
-      }
-    })
-  );
-
-  if (refToDataUrl.size === 0) return styles;
-
-  let patched = styles;
-  for (const [ref, dataUrl] of refToDataUrl) {
-    const esc = ref.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const replaceRe = new RegExp(`url\\(\\s*(['\"]?)${esc}\\1\\s*\\)`, "g");
-    patched = patched.replace(replaceRe, `url(${dataUrl})`);
-  }
-  return patched;
-};
-
-const inlineHtmlImgAssets = async (html: string, templateDir: string) => {
-  // Substitui <img src="..."> por data URLs quando apontam para arquivos locais
-  // Suporta caminhos absolutos "/foo" (em public, com ou sem extensão) e relativos ao templateDir
-  const imgRe = /<img\b([^>]*?)src=["']([^"']+)["']([^>]*)>/gi;
-  const refs: Set<string> = new Set();
-  let m: RegExpExecArray | null;
-  while ((m = imgRe.exec(html)) !== null) {
-    const ref = m[2];
-    if (!ref || ref.startsWith("data:") || /^https?:/i.test(ref)) continue;
-    refs.add(ref);
-  }
-  if (refs.size === 0) return html;
-
-  const getMime = (p: string) => {
-    const ext = path.extname(p).toLowerCase();
-    switch (ext) {
-      case ".png":
-        return "image/png";
-      case ".jpg":
-      case ".jpeg":
-        return "image/jpeg";
-      case ".svg":
-        return "image/svg+xml";
-      case ".webp":
-        return "image/webp";
-      case ".gif":
-        return "image/gif";
-      case ".woff2":
-        return "font/woff2";
-      case ".woff":
-        return "font/woff";
-      default:
-        return "application/octet-stream";
-    }
-  };
-
-  const tryExtensions = ["", ".png", ".jpg", ".jpeg", ".svg", ".webp", ".gif"];
-  const refToDataUrl = new Map<string, string>();
-  for (const ref of refs) {
-    const hasExt = Boolean(path.extname(ref));
-    const candidates: string[] = [];
-    const addCandidates = (base: string) => {
-      if (hasExt) {
-        candidates.push(base);
-      } else {
-        for (const ext of tryExtensions) candidates.push(base + ext);
-      }
-    };
-
-    if (ref.startsWith("/")) {
-      addCandidates(path.join(process.cwd(), "public", ref.slice(1)));
-    } else {
-      addCandidates(path.join(templateDir, ref));
-      addCandidates(path.join(process.cwd(), "public", ref));
-    }
-
-    for (const filePath of candidates) {
-      try {
-        const data = await fs.readFile(filePath);
-        const mime = getMime(filePath);
-        const base64 = data.toString("base64");
-        refToDataUrl.set(ref, `data:${mime};base64,${base64}`);
-        break;
-      } catch {
-        // tenta o próximo
-      }
-    }
-  }
-
-  if (refToDataUrl.size === 0) return html;
-
-  let patched = html;
-  for (const [ref, dataUrl] of refToDataUrl) {
-    const esc = ref.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const srcRe = new RegExp(`(</?img[^>]*?src=)["']${esc}["']`, "gi");
-    patched = patched.replace(srcRe, (_m, p1) => `${p1}"${dataUrl}"`);
-  }
-  return patched;
-};
-
 // Garante mapeamentos equivalentes ao styleMap do fluxo DOCX
 const ensureFirstTagClass = (html: string, tag: string, className: string) => {
   let applied = false;
@@ -609,12 +461,16 @@ const ensurePreCodeClass = (html: string) => {
   });
 };
 
-const buildDocumentHtml = async (docHtml: string, meta: DocumentMeta) => {
+const buildDocumentHtml = async (
+  docHtml: string,
+  meta: DocumentMeta,
+  layout: "padrao" | "a4" | "apresentacao" = "a4",
+  brand: BrandConfig = DEFAULT_BRAND_CONFIG
+) => {
   const templateDir = path.join(process.cwd(), "public", "templates", "document");
 
-  const [template, styles, logoBase64] = await Promise.all([
+  const [template, logoBase64] = await Promise.all([
     fs.readFile(path.join(templateDir, "index.html"), "utf-8"),
-    fs.readFile(path.join(templateDir, "style.css"), "utf-8"),
     fs.readFile(path.join(templateDir, "assets", "logo.png"), { encoding: "base64" }),
   ]);
 
@@ -623,8 +479,30 @@ const buildDocumentHtml = async (docHtml: string, meta: DocumentMeta) => {
     timeStyle: "short",
   }).format(new Date());
 
-  const stylesPatched = await inlineCssAssets(styles, templateDir);
-  const inlineStyles = `<style>${stylesPatched}</style>`;
+  // Obtém o CSS customizado com cache (inclui cores da marca e assets inline)
+  const customizedCSS = await getCachedCustomizedCSS(brand);
+
+  // CSS adicional para layout padrão (sem paginação)
+  const padraoOverrides = layout === "padrao" ? `
+    <style id="pdf-overrides">
+      /* Remover tamanho A4 e margens impostas pelo @page padrão */
+      @page { size: auto; margin: 0; }
+      /* Evitar blocos com altura de viewport que centralizam conteúdo */
+      .doc .main-container { min-height: auto !important; }
+      /* Remover padding/margem exagerados que aparentam "centralização" */
+      .doc .document-main { padding: 20px !important; margin: 0 !important; }
+      /* Não forçar anti-quebra em excesso para permitir fluxo contínuo */
+      .doc #content, .doc #content * {
+        page-break-before: auto !important;
+        page-break-after: auto !important;
+        page-break-inside: auto !important;
+        break-before: auto !important;
+        break-after: auto !important;
+        break-inside: auto !important;
+      }
+    </style>
+  ` : "";
+  const inlineStyles = `<style>${customizedCSS}</style>${padraoOverrides}`;
   const templateWithStyles = template.replace("</head>", `${inlineStyles}</head>`);
 
   const templateWithMeta = templateWithStyles
@@ -635,13 +513,20 @@ const buildDocumentHtml = async (docHtml: string, meta: DocumentMeta) => {
     .replace(/{{TITLE}}/g, meta.title || "Documento")
     .replace(/{{DESCRIPTION}}/g, meta.description || "");
 
-  const withLogo = templateWithMeta.replace(
-    /{{LOGO_SRC}}/g,
-    `data:image/png;base64,${logoBase64}`
-  );
+  const selectedLogo = brand.logo && brand.logo.startsWith("data:")
+    ? brand.logo
+    : `data:image/png;base64,${logoBase64}`;
+  const withLogo = templateWithMeta.replace(/{{LOGO_SRC}}/g, selectedLogo);
 
-  const docHtmlPatched = await inlineHtmlImgAssets(docHtml, templateDir);
-  return withLogo.replace("{{CONTENT}}", docHtmlPatched);
+  // Injeta o conteúdo do documento
+  return withLogo.replace("{{CONTENT}}", docHtml);
+};
+
+// Remove estilos inline das tabelas que podem conflitar com o tema
+const stripTableInlineStyles = (content: string): string => {
+  return content
+    .replace(/<(table|thead|tbody|tr|th|td)([^>]*?)\sstyle\s*=\s*(["'])(.*?)\3([^>]*)>/gi, "<$1$2$5>")
+    .replace(/<(table|thead|tbody|tr|th|td)([^>]*?)\sstyle\s*=\s*([^\s>]+)([^>]*)>/gi, "<$1$2$4>");
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -652,10 +537,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { html, meta, aiEnhancement } = req.body as {
+    const { html, meta, aiEnhancement, pdfLayout, brandConfig } = req.body as {
       html?: string;
       meta?: Partial<DocumentMeta>;
       aiEnhancement?: Partial<AIEnhancementOptions>;
+      pdfLayout?: "padrao" | "a4" | "apresentacao";
+      brandConfig?: Partial<BrandConfig>;
+    };
+    const safeBrand: BrandConfig = {
+      logo: brandConfig?.logo ?? DEFAULT_BRAND_CONFIG.logo,
+      primaryColor: brandConfig?.primaryColor ?? DEFAULT_BRAND_CONFIG.primaryColor,
+      secondaryColor: brandConfig?.secondaryColor ?? DEFAULT_BRAND_CONFIG.secondaryColor,
+      accentColor: brandConfig?.accentColor ?? DEFAULT_BRAND_CONFIG.accentColor,
+      backgroundColor: brandConfig?.backgroundColor ?? DEFAULT_BRAND_CONFIG.backgroundColor,
     };
     
     if (!html) {
@@ -685,12 +579,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       processedHtml = await enhanceDocumentWithAI(html, aiOptions);
     }
 
-    let normalizedHtml = enhanceHeadings(processedHtml);
+  // Remove estilos inline específicos de tabela para padronizar visual
+  const withoutInlineTableStyles = stripTableInlineStyles(processedHtml);
+  let normalizedHtml = enhanceHeadings(withoutInlineTableStyles);
     // Equivalentes ao styleMap do fluxo DOCX
     normalizedHtml = ensureFirstTagClass(normalizedHtml, 'h1', 'doc-title');
     normalizedHtml = ensureFirstTagClass(normalizedHtml, 'h2', 'subtitle');
     normalizedHtml = ensurePreCodeClass(normalizedHtml);
-    const documentHtml = await buildDocumentHtml(normalizedHtml, safeMeta);
+  const documentHtml = await buildDocumentHtml(normalizedHtml, safeMeta, pdfLayout ?? "a4", safeBrand);
 
     // Configuração para funcionar tanto localmente quanto na Vercel
     const isProduction = process.env.NODE_ENV === 'production';
@@ -710,11 +606,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     const page = await browser.newPage();
     await page.setContent(documentHtml, { waitUntil: "networkidle0" });
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      margin: { top: "10mm", bottom: "10mm", left: "0mm", right: "0mm" },
-      printBackground: true,
-    });
+
+    // Seleção de layout
+    const layout = pdfLayout ?? "padrao";
+  let pdfBuffer: Uint8Array;
+    if (layout === "a4") {
+      pdfBuffer = await page.pdf({
+        format: "A4",
+        margin: { top: "10mm", bottom: "10mm", left: "0mm", right: "0mm" },
+        printBackground: true,
+        preferCSSPageSize: true,
+      });
+    } else if (layout === "apresentacao") {
+      // Tamanho widescreen 16:9 típico do PowerPoint: 13.333in x 7.5in
+      pdfBuffer = await page.pdf({
+        width: "13.333in",
+        height: "7.5in",
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: { top: "0.3in", bottom: "0.3in", left: "0.3in", right: "0.3in" },
+      });
+    } else {
+      // "padrao": sem paginação (uma página longa). Calcula a altura total do documento em px e converte para mm.
+      const totalHeightPx = await page.evaluate(() => {
+        const body = document.body;
+        const html = document.documentElement;
+        const main = document.querySelector(".document-main") as HTMLElement | null;
+        if (main) {
+          main.style.marginLeft = "4rem";
+          main.style.marginRight = "4rem";
+        }
+        return Math.max(
+          body.scrollHeight,
+          body.offsetHeight,
+          html.clientHeight,
+          html.scrollHeight,
+          html.offsetHeight
+        );
+      });
+      const inches = Math.max(totalHeightPx / 96, 11);
+      const heightMm = inches * 25.5;
+      pdfBuffer = await page.pdf({
+        width: "1140px",
+        height: `${heightMm}mm`,
+        printBackground: true,
+        preferCSSPageSize: true,
+        margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" },
+      });
+    }
     await browser.close();
 
     res.setHeader("Content-Type", "application/pdf");
