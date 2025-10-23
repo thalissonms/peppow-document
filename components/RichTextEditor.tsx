@@ -224,7 +224,7 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
 
       // Determina o tipo de bloco
       const anchorNode = selection.anchor.getNode();
-      let element =
+      const element =
         anchorNode.getKey() === "root"
           ? anchorNode
           : anchorNode.getTopLevelElementOrThrow();
@@ -815,7 +815,7 @@ export const RichTextEditor = ({
         <div
           className="doc"
           data-layout={pdfLayout}
-          style={{ ["--header-offset" as any]: `${headerOffset}px` }}
+          style={{ ["--header-offset" as string]: `${headerOffset}px` }}
         >
           <style>{`
             /* CSS da marca (gerado no servidor) */

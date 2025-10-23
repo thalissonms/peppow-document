@@ -109,8 +109,8 @@ export default function App() {
         }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}) as any);
-        throw new Error(data?.error || `Falha ao gerar PDF (${res.status})`);
+        const data = await res.json().catch(() => ({}) as Record<string, unknown>);
+        throw new Error(data?.error as string || `Falha ao gerar PDF (${res.status})`);
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -153,9 +153,9 @@ export default function App() {
         }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}) as any);
+        const data = await res.json().catch(() => ({}) as Record<string, unknown>);
         throw new Error(
-          data?.error || `Falha ao melhorar conteúdo (${res.status})`
+          data?.error as string || `Falha ao melhorar conteúdo (${res.status})`
         );
       }
       const data = (await res.json()) as { enhancedHtml?: string };
@@ -283,7 +283,7 @@ export default function App() {
                     contentHTML={html}
                     onContentChange={updateHtml}
                     onGeneratePDF={handleGeneratePDF}
-                    iframeRef={iframeRef as any}
+                    iframeRef={iframeRef as React.RefObject<HTMLIFrameElement>}
                     brandConfig={brandConfig}
                     loading={loading}
                     pdfLayout={pdfLayout}
