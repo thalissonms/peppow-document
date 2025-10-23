@@ -52,16 +52,27 @@ export default function App() {
     resetDocument,
   } = useDocumentConversion();
 
+  // Usa useMemo para criar um objeto estável de meta
+  // Isso evita que o hook useDocumentPreview se recrie a cada render
+  const stableMeta = useMemo(() => meta, [
+    meta.title,
+    meta.description,
+    meta.headerLabel,
+    meta.headerValue,
+    meta.validityMessage,
+  ]);
+
   const {
     previewHTML,
     loading: previewLoading,
     error: previewError,
     generatePreview,
-  } = useDocumentPreview({ brandConfig, documentMeta: meta });
+  } = useDocumentPreview({ brandConfig, documentMeta: stableMeta });
 
   // Combined states
   const loading = conversionLoading || pdfLoading || aiLoading || previewLoading;
   const error = conversionError || pdfError || aiError || previewError;
+  
   useEffect(() => {
     if (success || error) {
       if (alertTimer) clearTimeout(alertTimer);
@@ -186,12 +197,20 @@ export default function App() {
     setSuccess("Configurações restauradas para o padrão!");
   };
 
-  // Gera preview sempre que HTML, layout ou brandConfig mudarem
+  // Gera preview quando HTML, layout ou meta mudarem
+  // Com onBlur nos inputs, não precisa de debounce
   useEffect(() => {
-    if (html) {
-      generatePreview(html, pdfLayout);
-    }
-  }, [html, pdfLayout, brandConfig, generatePreview]);
+    if (!html) return;
+    generatePreview(html, pdfLayout);
+  }, [html, pdfLayout, stableMeta, generatePreview]);
+
+  const handleMetaChange = (newMeta: DocumentMeta) => {
+    setMeta(newMeta);
+  };
+
+  const handleAIOptionsChange = (newAIOptions: AIOptions) => {
+    setAiOptions(newAIOptions);
+  };
 
   return (
     <div className="min-h-screen bg-[#fff9d5] text-[#152937]">
@@ -271,9 +290,9 @@ export default function App() {
                 <div className="grid lg:grid-cols-[35%_auto] gap-4">
                   <DocumentEditor
                     meta={meta}
-                    onMetaChange={setMeta}
+                    onMetaChange={handleMetaChange}
                     aiOptions={aiOptions}
-                    onAIOptionsChange={setAiOptions}
+                    onAIOptionsChange={handleAIOptionsChange}
                     onEnhance={handleEnhanceWithAI}
                     loading={loading}
                     pdfLayout={pdfLayout}

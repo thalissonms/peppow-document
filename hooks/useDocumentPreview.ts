@@ -13,6 +13,7 @@ export const useDocumentPreview = ({ brandConfig, documentMeta }: UseDocumentPre
 
   /**
    * Gera o preview do documento usando a API generate-preview
+   * Função simples sem otimizações complexas
    */
   const generatePreview = useCallback(
     async (contentHTML: string, layout: "padrao" | "a4" | "apresentacao" = "a4") => {

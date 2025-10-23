@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import type { Editor, EditorConfig } from "@ckeditor/ckeditor5-core";
 import { Expand, Shrink, X } from "lucide-react";
 
@@ -319,6 +319,27 @@ export default function PreviewPage() {
     onDropZoneClick();
   };
 
+  // Memoiza os handlers dos inputs para evitar re-renderização e perda de foco
+  const handleTitleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setMeta((current) => ({ ...current, title: event.target.value }));
+  }, []);
+
+  const handleDescriptionChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMeta((current) => ({ ...current, description: event.target.value }));
+  }, []);
+
+  const handleHeaderLabelChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setMeta((current) => ({ ...current, headerLabel: event.target.value }));
+  }, []);
+
+  const handleHeaderValueChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setMeta((current) => ({ ...current, headerValue: event.target.value }));
+  }, []);
+
+  const handleValidityMessageChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setMeta((current) => ({ ...current, validityMessage: event.target.value }));
+  }, []);
+
   const onEnhanceWithAI = async () => {
     if (!html || !aiOptions.enabled) return;
     
@@ -570,12 +591,7 @@ export default function PreviewPage() {
                     id="meta-title"
                     className="w-full px-4 py-2.5 rounded-[10px] border border-[rgba(255,94,43,0.25)] bg-white text-[#152937] font-['Kanit',sans-serif] placeholder-[#154c71] focus:outline-none focus:ring-1 focus:ring-[#ff5e2b] focus:border-transparent transition-all shadow-sm focus:shadow-md focus:shadow-[rgba(255,94,43,0.2)] disabled:opacity-60"
                     value={meta.title}
-                    onChange={(event) =>
-                      setMeta((current) => ({
-                        ...current,
-                        title: event.target.value,
-                      }))
-                    }
+                    onChange={handleTitleChange}
                     placeholder="Título do documento"
                     disabled={!isEditorAvailable || loading}
                   />
@@ -593,12 +609,7 @@ export default function PreviewPage() {
                     className="w-full px-4 py-2.5 rounded-[10px] border border-[rgba(255,94,43,0.25)] bg-white text-[#152937] font-['Kanit',sans-serif] placeholder-[#154c71] focus:outline-none focus:ring-1 focus:ring-[#ff5e2b] focus:border-transparent transition-all shadow-sm focus:shadow-md focus:shadow-[rgba(255,94,43,0.2)] disabled:opacity-60 resize-none"
                     rows={2}
                     value={meta.description}
-                    onChange={(event) =>
-                      setMeta((current) => ({
-                        ...current,
-                        description: event.target.value,
-                      }))
-                    }
+                    onChange={handleDescriptionChange}
                     placeholder="Breve descrição que aparecerá abaixo do título"
                     disabled={!isEditorAvailable || loading}
                   />
@@ -616,12 +627,7 @@ export default function PreviewPage() {
                       id="meta-header-label"
                       className="w-full px-4 py-2.5 rounded-[10px] border border-[rgba(255,94,43,0.25)] bg-white text-[#152937] font-['Kanit',sans-serif] placeholder-[#154c71] focus:outline-none focus:ring-1 focus:ring-[#ff5e2b] focus:border-transparent transition-all shadow-sm focus:shadow-md focus:shadow-[rgba(255,94,43,0.2)] disabled:opacity-60"
                       value={meta.headerLabel}
-                      onChange={(event) =>
-                        setMeta((current) => ({
-                          ...current,
-                          headerLabel: event.target.value,
-                        }))
-                      }
+                      onChange={handleHeaderLabelChange}
                       placeholder="Ex.: Proposta"
                       disabled={!isEditorAvailable || loading}
                     />
@@ -637,12 +643,7 @@ export default function PreviewPage() {
                       id="meta-header-value"
                       className="w-full px-4 py-2.5 rounded-[10px] border border-[rgba(255,94,43,0.25)] bg-white text-[#152937] font-['Kanit',sans-serif] placeholder-[#154c71] focus:outline-none focus:ring-1 focus:ring-[#ff5e2b] focus:border-transparent transition-all shadow-sm focus:shadow-md focus:shadow-[rgba(255,94,43,0.2)] disabled:opacity-60"
                       value={meta.headerValue}
-                      onChange={(event) =>
-                        setMeta((current) => ({
-                          ...current,
-                          headerValue: event.target.value,
-                        }))
-                      }
+                      onChange={handleHeaderValueChange}
                       placeholder="#1234"
                       disabled={!isEditorAvailable || loading}
                     />
@@ -660,12 +661,7 @@ export default function PreviewPage() {
                     id="meta-validity"
                     className="w-full px-4 py-2.5 rounded-[10px] border border-[rgba(255,94,43,0.25)] bg-white text-[#152937] font-['Kanit',sans-serif] placeholder-[#154c71] focus:outline-none focus:ring-1 focus:ring-[#ff5e2b] focus:border-transparent transition-all shadow-sm focus:shadow-md focus:shadow-[rgba(255,94,43,0.2)] disabled:opacity-60"
                     value={meta.validityMessage}
-                    onChange={(event) =>
-                      setMeta((current) => ({
-                        ...current,
-                        validityMessage: event.target.value,
-                      }))
-                    }
+                    onChange={handleValidityMessageChange}
                     placeholder="Válido por 7 dias"
                     disabled={!isEditorAvailable || loading}
                   />

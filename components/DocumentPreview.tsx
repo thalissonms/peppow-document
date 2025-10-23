@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { Download, Eye, Edit3 } from "lucide-react";
 import {
   Card,
@@ -31,7 +31,7 @@ interface DocumentPreviewProps {
   meta?: DocumentMeta;
 }
 
-export const DocumentPreview = ({
+const DocumentPreviewComponent = ({
   previewHTML,
   contentHTML,
   onContentChange,
@@ -140,3 +140,12 @@ export const DocumentPreview = ({
     </Card>
   );
 };
+
+// Exporta com memo e função de comparação customizada para evitar re-renderizações
+export const DocumentPreview = memo(DocumentPreviewComponent, (prevProps, nextProps) => {
+  // Só re-renderiza se o previewHTML realmente mudou
+  return prevProps.previewHTML === nextProps.previewHTML &&
+         prevProps.contentHTML === nextProps.contentHTML &&
+         prevProps.loading === nextProps.loading &&
+         prevProps.pdfLayout === nextProps.pdfLayout;
+});

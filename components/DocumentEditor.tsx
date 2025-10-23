@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { useState } from "react";
 import { DocumentMeta, AIOptions, PdfLayout } from "@/types/ui";
 import {
   Card,
@@ -39,6 +40,9 @@ export const DocumentEditor = ({
   loading = false,
   pdfLayout,
 }: DocumentEditorProps) => {
+  // Estado local para edição - só atualiza o pai no onBlur
+  const [localMeta, setLocalMeta] = useState(meta);
+
   const showPaginationLegend = pdfLayout !== "padrao";
   const paginationCopy: Record<PdfLayout, { title: string; description: string }> = {
     padrao: {
@@ -70,8 +74,9 @@ export const DocumentEditor = ({
             <Label htmlFor="title">Título do documento</Label>
             <Input
               id="title"
-              value={meta.title}
-              onChange={(e) => onMetaChange({ ...meta, title: e.target.value })}
+              value={localMeta.title}
+              onChange={(e) => setLocalMeta({ ...localMeta, title: e.target.value })}
+              onBlur={() => onMetaChange(localMeta)}
               disabled={loading}
             />
           </div>
@@ -79,10 +84,9 @@ export const DocumentEditor = ({
             <Label htmlFor="description">Descrição</Label>
             <Textarea
               id="description"
-              value={meta.description}
-              onChange={(e) =>
-                onMetaChange({ ...meta, description: e.target.value })
-              }
+              value={localMeta.description}
+              onChange={(e) => setLocalMeta({ ...localMeta, description: e.target.value })}
+              onBlur={() => onMetaChange(localMeta)}
               rows={2}
               disabled={loading}
             />
@@ -92,10 +96,9 @@ export const DocumentEditor = ({
               <Label htmlFor="headerLabel">Rótulo</Label>
               <Input
                 id="headerLabel"
-                value={meta.headerLabel}
-                onChange={(e) =>
-                  onMetaChange({ ...meta, headerLabel: e.target.value })
-                }
+                value={localMeta.headerLabel}
+                onChange={(e) => setLocalMeta({ ...localMeta, headerLabel: e.target.value })}
+                onBlur={() => onMetaChange(localMeta)}
                 disabled={loading}
               />
             </div>
@@ -103,10 +106,9 @@ export const DocumentEditor = ({
               <Label htmlFor="headerValue">Valor</Label>
               <Input
                 id="headerValue"
-                value={meta.headerValue}
-                onChange={(e) =>
-                  onMetaChange({ ...meta, headerValue: e.target.value })
-                }
+                value={localMeta.headerValue}
+                onChange={(e) => setLocalMeta({ ...localMeta, headerValue: e.target.value })}
+                onBlur={() => onMetaChange(localMeta)}
                 disabled={loading}
               />
             </div>
@@ -115,10 +117,9 @@ export const DocumentEditor = ({
             <Label htmlFor="validity">Mensagem de validade</Label>
             <Input
               id="validity"
-              value={meta.validityMessage}
-              onChange={(e) =>
-                onMetaChange({ ...meta, validityMessage: e.target.value })
-              }
+              value={localMeta.validityMessage}
+              onChange={(e) => setLocalMeta({ ...localMeta, validityMessage: e.target.value })}
+              onBlur={() => onMetaChange(localMeta)}
               disabled={loading}
             />
           </div>
