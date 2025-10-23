@@ -517,55 +517,51 @@ const buildDocumentHtml = async (
   ` : `
     <style id="pdf-overrides-a4">
       /* MODO A4 - PAGINAÇÃO PADRÃO */
-      @page { 
+      @page {
         size: A4;
-        margin: 15mm 0mm;
+        margin: 0;
       }
-      
-      /* Força impressão de backgrounds no Chromium/Puppeteer */
+
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
-      
-      html {
-        background: ${brand.backgroundColor} !important;
-        -webkit-print-color-adjust: exact !important;
-      }
-      
+
+      html,
       body.doc {
         margin: 0 !important;
         padding: 0 !important;
         background: ${brand.backgroundColor} !important;
-        -webkit-print-color-adjust: exact !important;
       }
-      
+
+      body.doc {
+        position: relative !important;
+      }
+
       .doc .main-container {
         background: ${brand.backgroundColor} !important;
-        padding: 0 !important;
         margin: 0 !important;
-        -webkit-print-color-adjust: exact !important;
+        padding: 0 !important;
       }
-      
+
       .doc .proposal-header {
         margin-top: 0 !important;
         margin-bottom: 40px !important;
         background: ${brand.secondaryColor} !important;
         border-color: ${brand.accentColor} !important;
-        -webkit-print-color-adjust: exact !important;
       }
-      
+
       .doc .document-main {
         background: ${brand.backgroundColor} !important;
-        padding: 40px 64px !important;
+        padding: 40px 64px 80px 64px !important;
         margin: 0 !important;
-        -webkit-print-color-adjust: exact !important;
       }
-      /* Espaçamento após quebras de página */
+
       .doc #content > *:first-child {
         margin-top: 0 !important;
       }
+
       .doc #content h1,
       .doc #content h2,
       .doc #content h3,
@@ -579,22 +575,14 @@ const buildDocumentHtml = async (
         orphans: 3;
         widows: 3;
       }
+
       .doc #content p {
         orphans: 3;
         widows: 3;
         margin-top: 0;
         margin-bottom: 16px;
       }
-      /* Adiciona padding antes do primeiro elemento de cada página (exceto a primeira) */
-      .doc #content p:first-of-type,
-      .doc #content h1,
-      .doc #content h2,
-      .doc #content h3,
-      .doc #content ul:first-of-type,
-      .doc #content ol:first-of-type,
-      .doc #content table:first-of-type {
-        padding-top: 0;
-      }
+
       .doc #content ul,
       .doc #content ol,
       .doc #content table,
@@ -604,6 +592,7 @@ const buildDocumentHtml = async (
         margin-top: 16px;
         margin-bottom: 16px;
       }
+
       .doc #content table {
         page-break-before: auto !important;
         page-break-after: auto !important;
@@ -616,12 +605,8 @@ const buildDocumentHtml = async (
     typeof brand.logoMaxWidth === 'number' ? `--logo-max-width:${brand.logoMaxWidth}px;` : ''
   }}</style>`;
   // Estilos do footer fixo sem faixa branca
-  const fixedFooterStyles = `
+  const fixedFooterStyles = layout === "padrao" ? `
     <style id="fixed-footer-styles">
-      /* reservar espaço no conteúdo para não sobrepor o footer (34px + 25px) */
-      @media print {
-        .doc .document-main { padding-bottom: 59px !important; }
-      }
       .pdf-fixed-footer {
         position: fixed;
         left: 0;
@@ -637,7 +622,7 @@ const buildDocumentHtml = async (
         background: transparent !important;
       }
       .pdf-fixed-footer svg { display: block; }
-    </style>`;
+    </style>` : "";
   const inlineStyles = `<style>${customizedCSS}</style>${logoVars}${padraoOverrides}${fixedFooterStyles}`;
   const templateWithStyles = template.replace("</head>", `${inlineStyles}</head>`);
 
