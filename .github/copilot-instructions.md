@@ -5,9 +5,14 @@
 - [x] Install Required Extensions
 - [x] Compile the Project
 - [x] Create and Run Task
-- [ ] Launch the Project
+- [x] Launch the Project
 - [x] Ensure Documentation is Complete
 
 - Work through each checklist item systematically.
 - Keep communication concise and focused.
 - Follow development best practices.
+
+Quick launch (Windows PowerShell):
+- Instalar dependências: npm install
+- Rodar em desenvolvimento: npm run dev (http://localhost:3000)
+- Build de produção: npm run build; iniciar: npm start

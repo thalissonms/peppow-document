@@ -6,6 +6,10 @@ export const DEFAULT_BRAND_CONFIG: BrandConfig = {
     secondaryColor: "#152937",
     accentColor: "#321bc1",
     backgroundColor: "#fff9d5",
+    textColor: "#000",
+    borderColor: "#AFCDE1",
+    logoHeight: 34,
+    // logoMaxWidth: undefined // opcional
 };
 
 export const DEFAULT_DOCUMENT_META: DocumentMeta = {

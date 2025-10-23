@@ -10,6 +10,7 @@ import {
 } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { ColorPicker } from "./ColorPicker";
+import { Input } from "./ui/Input";
 
 interface BrandConfigurationProps {
   brandConfig: BrandConfig;
@@ -114,6 +115,42 @@ export const BrandConfiguration = ({
               Remover Logo
             </Button>
           )}
+
+          {/* Dimensões do Logo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+              <label className="block text-sm font-medium text-[#154C71] mb-1">Altura do Logo (px)</label>
+              <Input
+                type="number"
+                min={12}
+                max={160}
+                value={brandConfig.logoHeight ?? 34}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (Number.isNaN(val)) return;
+                  onConfigChange({ ...brandConfig, logoHeight: val });
+                }}
+              />
+              <p className="text-xs text-gray-500 mt-1">Padrão: 34px</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#154C71] mb-1">Largura Máxima (px) — opcional</label>
+              <Input
+                type="number"
+                min={50}
+                max={600}
+                value={brandConfig.logoMaxWidth ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const val = raw === "" ? undefined : parseInt(raw, 10);
+                  if (raw !== "" && Number.isNaN(val)) return;
+                  onConfigChange({ ...brandConfig, logoMaxWidth: val });
+                }}
+                placeholder="Ex.: 127"
+              />
+              <p className="text-xs text-gray-500 mt-1">Mantém proporção. Deixe em branco para sem limite.</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -165,6 +202,22 @@ export const BrandConfiguration = ({
                 onConfigChange({ ...brandConfig, backgroundColor: color })
               }
             />
+            <ColorPicker
+              label="Cor dos parágrafos"
+              description="Textos do documento"
+              color={brandConfig.textColor}
+              onChange={(color) =>
+                onConfigChange({ ...brandConfig, textColor: color })
+              }
+            />
+            <ColorPicker
+              label="Cor das Bordas"
+              description="Bordas do documento"
+              color={brandConfig.borderColor}
+              onChange={(color) =>
+                onConfigChange({ ...brandConfig, borderColor: color })
+              }
+            />
           </div>
 
           <div className="pt-4 border-t border-[rgba(255,94,43,0.25)]">
@@ -207,7 +260,7 @@ export const BrandConfiguration = ({
             </div>
             <div
               className="p-6 rounded-lg"
-              style={{ backgroundColor: brandConfig.backgroundColor }}
+              style={{ backgroundColor: brandConfig.backgroundColor, border: `1px solid ${brandConfig.borderColor}` }}
             >
               <h2 className="mb-2" style={{ color: brandConfig.primaryColor }}>
                 Título Principal

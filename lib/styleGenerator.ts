@@ -13,13 +13,13 @@ export const generateBrandConfigHash = (brandConfig: BrandConfig): string => {
     secondaryColor: brandConfig.secondaryColor,
     accentColor: brandConfig.accentColor,
     backgroundColor: brandConfig.backgroundColor,
+    textColor: brandConfig.textColor,
+    borderColor: brandConfig.borderColor,
   });
   return crypto.createHash("md5").update(configString).digest("hex");
 };
 
-/**
- * Substitui as variáveis CSS do style.css pelas cores da marca
- */
+
 export const injectBrandColors = (cssContent: string, brandConfig: BrandConfig): string => {
   // Mapa de substituição de variáveis CSS para cores da marca
   const colorMap: Record<string, string> = {
@@ -28,8 +28,12 @@ export const injectBrandColors = (cssContent: string, brandConfig: BrandConfig):
     "--dark-blue": brandConfig.secondaryColor,
     "--medium-blue": brandConfig.accentColor,
     "--light-text": "#fff9d5", // Mantém texto claro para contraste
-    "--dark-text": brandConfig.secondaryColor,
-    "--black-text": brandConfig.secondaryColor,
+    // Usar textColor como cor principal de parágrafos
+    "--dark-text": brandConfig.textColor || brandConfig.secondaryColor,
+    "--black-text": brandConfig.textColor || brandConfig.secondaryColor,
+    // Variáveis auxiliares (caso referenciadas)
+    "--text-color": brandConfig.textColor || brandConfig.secondaryColor,
+    "--border-color": brandConfig.borderColor,
     "--orange-accent-light": `${brandConfig.primaryColor}1A`,
     "--orange-accent-medium": `${brandConfig.primaryColor}66`,
     "--orange-accent-strong": `${brandConfig.primaryColor}CC`,
@@ -53,9 +57,7 @@ export const injectBrandColors = (cssContent: string, brandConfig: BrandConfig):
   return customizedCSS;
 };
 
-/**
- * Inline de assets CSS (fontes, imagens) para data URLs
- */
+
 export const inlineCssAssets = async (styles: string, templateDir: string): Promise<string> => {
   const urlRegex = /url\(\s*(['\"]?)([^)\'\"]+)\1\s*\)/g;
   const matches: Array<{ full: string; ref: string }> = [];
@@ -123,9 +125,7 @@ export const inlineCssAssets = async (styles: string, templateDir: string): Prom
   return patched;
 };
 
-/**
- * Gera o CSS completo customizado com cores da marca e assets inline
- */
+
 export const generateCustomizedCSS = async (brandConfig: BrandConfig): Promise<string> => {
   const templateDir = path.join(process.cwd(), "public", "templates", "document");
   const stylePath = path.join(templateDir, "style.css");
@@ -142,14 +142,10 @@ export const generateCustomizedCSS = async (brandConfig: BrandConfig): Promise<s
   return finalCSS;
 };
 
-/**
- * Cache de estilos em memória (em produção, considere usar Redis ou similar)
- */
+
 const styleCache = new Map<string, string>();
 
-/**
- * Obtém o CSS customizado (usa cache quando possível)
- */
+
 export const getCachedCustomizedCSS = async (brandConfig: BrandConfig): Promise<string> => {
   const hash = generateBrandConfigHash(brandConfig);
 
@@ -177,9 +173,6 @@ export const getCachedCustomizedCSS = async (brandConfig: BrandConfig): Promise<
   return customCSS;
 };
 
-/**
- * Limpa o cache de estilos (útil para desenvolvimento/testes)
- */
 export const clearStyleCache = () => {
   styleCache.clear();
   console.log("[styleGenerator] Cache de estilos limpo");

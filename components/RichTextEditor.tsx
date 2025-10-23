@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState, useRef } from "react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/Popover";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -56,7 +57,7 @@ import {
   TextFormatType,
 } from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
-import { $setBlocksType } from "@lexical/selection";
+import { $setBlocksType, $patchStyleText } from "@lexical/selection";
 import { $insertNodes, $isParagraphNode } from "lexical";
 import {
   Bold,
@@ -76,17 +77,20 @@ import {
   Underline as UnderlineIcon,
   Link as LinkIcon,
   RemoveFormatting,
+  Palette,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Separator } from "./ui/Separator";
 import { EditorHelp } from "./EditorHelper";
-import { BrandConfig, PdfLayout } from "@/types/ui";
+import { BrandConfig, PdfLayout, DocumentMeta } from "@/types/ui";
+import { HoverPopover } from "./ui/HoverPopover";
 
 interface RichTextEditorProps {
   content: string;
   onChange: (html: string) => void;
   brandConfig: BrandConfig;
   pdfLayout?: PdfLayout;
+  meta?: DocumentMeta;
 }
 
 // Plugin para sincronizar conteúdo inicial
@@ -350,6 +354,64 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
     editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined);
   };
 
+  // Alternar cabeçalho: promove/demove a 1ª linha da tabela para <th>/<td>
+  const toggleFirstRowHeader = () => {
+    editor.update(() => {
+      try {
+        const html = $generateHtmlFromNodes(editor, null);
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, "text/html");
+        const tables = Array.from(doc.querySelectorAll("table"));
+        tables.forEach((table) => {
+          const firstRow = table.querySelector("tr");
+          if (!firstRow) return;
+          const cellEls = Array.from(firstRow.children).filter(
+            (el) => el instanceof HTMLElement && (el.tagName === "TD" || el.tagName === "TH")
+          ) as HTMLElement[];
+          if (cellEls.length === 0) return;
+          const isHeader = cellEls.every((c) => c.tagName === "TH");
+          cellEls.forEach((cell) => {
+            const newCell = doc.createElement(isHeader ? "td" : "th");
+            // copia atributos relevantes (exceto style/width/height)
+            Array.from(cell.attributes).forEach((attr) => {
+              const name = attr.name.toLowerCase();
+              if (name === "style" || name === "width" || name === "height") return;
+              newCell.setAttribute(attr.name, attr.value);
+            });
+            newCell.innerHTML = cell.innerHTML;
+            cell.replaceWith(newCell);
+          });
+        });
+
+        const dom = doc;
+        const root = $getRoot();
+        root.clear();
+        const nodes = $generateNodesFromDOM(editor, dom);
+        root.append(...nodes);
+      } catch (e) {
+        console.error("toggleFirstRowHeader failed", e);
+      }
+    });
+  };
+
+  const setTextColor = (color: string) => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        $patchStyleText(selection, { color });
+      }
+    });
+  };
+
+  const setHighlightColor = (color: string) => {
+    editor.update(() => {
+      const selection = $getSelection();
+      if ($isRangeSelection(selection)) {
+        $patchStyleText(selection, { backgroundColor: color });
+      }
+    });
+  };
+
   const ToolbarButton = ({
     onClick,
     isActive = false,
@@ -363,35 +425,44 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
     children: React.ReactNode;
     title: string;
   }) => (
-    <Button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      variant={isActive ? "default" : "ghost"}
-      size="sm"
-      className={`h-8 w-8 p-0 ${isActive ? "bg-[#ff5e2b] text-white hover:bg-[#ff7e4d]" : ""}`}
-      title={title}
-    >
-      {children}
-    </Button>
+    <HoverPopover trigger={
+      <Button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        variant={isActive ? "default" : "ghost"}
+        size="sm"
+        className={`h-10 w-10 p-0 ${isActive ? "bg-[#ff5e2b] text-white hover:bg-[#ff7e4d]" : ""} cursor-pointer`}
+        title={title}
+      >
+        {children}
+      </Button>
+    }
+    side="left"
+    align="start"
+    className="w-fit px-4 py-2 mr-1 border-[#ff5e2b]/50">
+      <div className="space-y-1">
+        <h4 className="text-sm font-semibold">{title}</h4>
+      </div> 
+    </HoverPopover>
   );
 
   return (
-    <div className="border-b border-[rgba(255,94,43,0.2)] bg-[#fff9d5] p-2 flex flex-wrap gap-1 items-center sticky top-0 z-10">
+    <div className="fixed top-6 right-6 rounded-full border border-[#ff5e2b]/30 hover:border-[#ff5e2b]/50 bg-white shadow-md p-2 flex flex-col flex-wrap gap-1 items-center z-10">
       {/* History */}
       <ToolbarButton
         onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}
         disabled={!canUndo}
         title="Desfazer (Ctrl+Z)"
       >
-        <Undo className="h-4 w-4" />
+        <Undo className="h-6 w-6" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}
         disabled={!canRedo}
         title="Refazer (Ctrl+Y)"
       >
-        <Redo className="h-4 w-4" />
+        <Redo className="h-6 w-6" />
       </ToolbarButton>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
@@ -402,21 +473,21 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
         isActive={blockType === "h1"}
         title="Título 1"
       >
-        <Heading1 className="h-4 w-4" />
+        <Heading1 className="h-6 w-6" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => formatHeading("h2")}
         isActive={blockType === "h2"}
         title="Título 2"
       >
-        <Heading2 className="h-4 w-4" />
+        <Heading2 className="h-6 w-6" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => formatHeading("h3")}
         isActive={blockType === "h3"}
         title="Título 3"
       >
-        <Heading3 className="h-4 w-4" />
+        <Heading3 className="h-6 w-6" />
       </ToolbarButton>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
@@ -427,21 +498,21 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
         isActive={isBold}
         title="Negrito (Ctrl+B)"
       >
-        <Bold className="h-4 w-4" />
+        <Bold className="h-6 w-6" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}
         isActive={isItalic}
         title="Itálico (Ctrl+I)"
       >
-        <Italic className="h-4 w-4" />
+        <Italic className="h-6 w-6" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline")}
         isActive={isUnderline}
         title="Sublinhado (Ctrl+U)"
       >
-        <UnderlineIcon className="h-4 w-4" />
+        <UnderlineIcon className="h-6 w-6" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() =>
@@ -450,14 +521,14 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
         isActive={isStrikethrough}
         title="Tachado"
       >
-        <Strikethrough className="h-4 w-4" />
+        <Strikethrough className="h-6 w-6" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code")}
         isActive={isCode}
         title="Código"
       >
-        <Code className="h-4 w-4" />
+        <Code className="h-6 w-6" />
       </ToolbarButton>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
@@ -470,7 +541,7 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
         isActive={blockType === "bullet"}
         title="Lista com marcadores"
       >
-        <List className="h-4 w-4" />
+        <List className="h-6 w-6" />
       </ToolbarButton>
       <ToolbarButton
         onClick={() =>
@@ -479,7 +550,7 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
         isActive={blockType === "number"}
         title="Lista numerada"
       >
-        <ListOrdered className="h-4 w-4" />
+        <ListOrdered className="h-6 w-6" />
       </ToolbarButton>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
@@ -490,29 +561,92 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
         isActive={blockType === "quote"}
         title="Citação"
       >
-        <Quote className="h-4 w-4" />
+        <Quote className="h-6 w-6" />
       </ToolbarButton>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
       {/* Table */}
       <ToolbarButton onClick={insertTable} title="Inserir tabela (3x3)">
-        <Table2 className="h-4 w-4" />
+        <Table2 className="h-6 w-6" />
+      </ToolbarButton>
+      <ToolbarButton onClick={toggleFirstRowHeader} title="Alternar cabeçalho (1ª linha TH)">
+        <span className="h-6 w-6 flex items-center justify-center text-[10px] font-bold">TH</span>
       </ToolbarButton>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
       {/* Horizontal Rule */}
       <ToolbarButton onClick={insertHorizontalRule} title="Linha horizontal">
-        <Minus className="h-4 w-4" />
+        <Minus className="h-6 w-6" />
       </ToolbarButton>
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 
       {/* Clear Formatting */}
       <ToolbarButton onClick={clearFormatting} title="Limpar formatação">
-        <RemoveFormatting className="h-4 w-4" />
+        <RemoveFormatting className="h-6 w-6" />
       </ToolbarButton>
+
+      <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {/* Paleta de Cores (Popover) */}
+      <HoverPopover
+        trigger={
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 p-0 cursor-pointer"
+            onMouseDown={(e) => {
+              // Evita que o botão roube o foco do editor e a seleção seja perdida
+              e.preventDefault();
+            }}
+            title="Paleta de cores"
+          >
+            <Palette className="h-6 w-6" />
+          </Button>
+        }
+        side="left"
+        align="center"
+        className="w-fit px-4 py-2 mr-1 border-[#ff5e2b]/50"
+      >
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs text-[#154C71]/70 mb-1">Texto</div>
+            <div className="grid grid-cols-6 gap-2">
+              {(
+                [
+                  ["Primária", brandConfig.primaryColor],
+                  ["Secundária", brandConfig.secondaryColor],
+                  ["Acento", brandConfig.accentColor],
+                  ["Text", brandConfig.textColor],
+                  ["Border", brandConfig.borderColor],
+                ] as const
+              ).map(([label, color]) => (
+                <button
+                  key={`txt-${label}`}
+                  type="button"
+                  className="h-6 w-6 rounded border border-black/10 bg-white flex items-center justify-center hover:border-black/30"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onClick={() => {
+                    setTextColor(color);
+                    editor.focus();
+                  }}
+                  title={`Cor do texto: ${label}`}
+                >
+                  <span className="font-semibold" style={{ color }}>
+                    A
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>         
+        </div>
+      </HoverPopover>
 
       {/* Spacer */}
       <div className="flex-1" />
@@ -528,7 +662,9 @@ export const RichTextEditor = ({
   onChange,
   brandConfig,
   pdfLayout = "padrao",
+  meta,
 }: RichTextEditorProps) => {
+  const [brandCss, setBrandCss] = useState<string>("");
   const initialConfig = {
     namespace: "DocumentEditor",
     theme: {
@@ -579,11 +715,39 @@ export const RichTextEditor = ({
   const handleChange = (editorState: EditorState, editor: LexicalEditor) => {
     editorState.read(() => {
       const html = $generateHtmlFromNodes(editor, null);
-      onChange(html);
+      // Sanitiza somente tabelas/células antes de propagar (não altera outros elementos)
+      const sanitize = (raw: string) => {
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(raw, "text/html");
+          const nodes = doc.querySelectorAll("table, th, td, thead, tbody, tfoot, tr");
+          nodes.forEach((el) => {
+            el.removeAttribute("style");
+            el.removeAttribute("width");
+            el.removeAttribute("height");
+          });
+          return doc.body.innerHTML;
+        } catch {
+          return raw;
+        }
+      };
+      onChange(sanitize(html));
     });
   };
 
   const resolvedLayout = pdfLayout;
+  // | Medir a altura do cabeçalho de prévia para deslocar o padrão de quebras
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [headerOffset, setHeaderOffset] = useState(0);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderOffset(el.offsetHeight || 0);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [meta, brandConfig, resolvedLayout]);
   const pageBreakHeight = resolvedLayout === "a4" ? 1123 : resolvedLayout === "apresentacao" ? 900 : 0;
   const layoutCss =
     resolvedLayout !== "padrao"
@@ -606,6 +770,8 @@ export const RichTextEditor = ({
               );
               background-size: 100% var(--page-break-height);
               background-repeat: repeat-y;
+              /* desloca o padrão para começar após o cabeçalho */
+              background-position: left var(--header-offset, 0px);
             }
           `
       : `
@@ -620,26 +786,48 @@ export const RichTextEditor = ({
       ? "As linhas tracejadas representam o fim de cada slide 16:9."
       : null;
 
+  // Busca o CSS de marca da API e injeta no editor
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/brand-css", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ brandConfig }),
+        });
+        const cssText = await res.text();
+        if (active) setBrandCss(cssText);
+      } catch (e) {
+        console.error("Falha ao carregar CSS da marca:", e);
+        if (active) setBrandCss("");
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [brandConfig]);
+
   return (
     <div className="border border-[rgba(255,94,43,0.2)] rounded-xl overflow-hidden bg-white">
       <LexicalComposer initialConfig={initialConfig}>
         <ToolbarPlugin brandConfig={brandConfig} />
-        <div className="doc" data-layout={pdfLayout}>
+        <div
+          className="doc"
+          data-layout={pdfLayout}
+          style={{ ["--header-offset" as any]: `${headerOffset}px` }}
+        >
           <style>{`
-            /* Estilos do editor usando as mesmas variáveis CSS do style.css */
-            .doc {
-              --bg-color: ${brandConfig.backgroundColor};
-              --primary-orange: ${brandConfig.primaryColor};
-              --dark-blue: ${brandConfig.secondaryColor};
-              --medium-blue: ${brandConfig.accentColor};
-              --light-text: #fff9d5;
-              --dark-text: ${brandConfig.secondaryColor};
-              --orange-accent-light: ${brandConfig.primaryColor}1A;
-              --orange-accent-medium: ${brandConfig.primaryColor}66;
-              --orange-accent-strong: ${brandConfig.primaryColor}CC;
-              --blue-accent-light: ${brandConfig.accentColor}40;
+            /* CSS da marca (gerado no servidor) */
+            ${brandCss}
+
+            /* Overrides reativos direto do client para refletir alterações imediatas do brandConfig */
+            .doc { 
+              ${brandConfig?.textColor ? `--dark-text: ${brandConfig.textColor};` : ""}
+              ${brandConfig?.borderColor ? `--border-color: ${brandConfig.borderColor};` : ""}
             }
-            
+
+            /* Bridge mínimo para o editor refletir variáveis de cor */
             .doc .editor-container {
               background: var(--bg-color);
               color: var(--dark-text);
@@ -647,256 +835,67 @@ export const RichTextEditor = ({
               min-height: 600px;
               padding: 2rem;
               font-family: 'Kanit', 'Segoe UI', Arial, Helvetica, sans-serif;
-              position: relative;
             }
+            /* Lexical theme: estilos de texto */
+            .editor-text-bold { font-weight: 700; }
+            .editor-text-italic { font-style: italic; }
+            .editor-text-underline { text-decoration: underline; text-underline-offset: 2px; }
+            .editor-text-strikethrough { text-decoration: line-through; }
+            .editor-text-code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 0.9em; background: rgba(0,0,0,0.04); padding: 0.15em 0.35em; border-radius: 4px; }
+            .doc .editor-container h1,
+            .doc .editor-container h2,
+            .doc .editor-container h3 { color: var(--primary-orange); }
+            .doc .editor-container a { color: var(--medium-blue); border-bottom: 2px solid var(--orange-accent-light); text-decoration: none; }
+            .doc .editor-container a:hover { color: var(--primary-orange); border-bottom-color: var(--primary-orange); }
 
-            .doc .editor-container::before {
-              content: none;
-            }
-
-            ${layoutCss}
-            
-            /* Headings - igual ao style.css */
-            .doc .editor-heading-h1,
-            .doc .editor-container h1 {
-              color: var(--primary-orange);
-              font-size: 32px;
-              font-weight: 700;
-              line-height: 1.3;
-              margin-top: 40px;
-              margin-bottom: 20px;
-            }
-            
-            .doc .editor-heading-h2,
-            .doc .editor-container h2 {
-              color: var(--primary-orange);
-              font-size: 26px;
-              font-weight: 700;
-              line-height: 1.35;
-              margin-top: 40px;
-              margin-bottom: 20px;
-            }
-            
-            .doc .editor-heading-h3,
-            .doc .editor-container h3 {
-              color: var(--medium-blue);
-              font-size: 22px;
-              font-weight: 700;
-              line-height: 1.4;
-              margin-top: 40px;
-              margin-bottom: 20px;
-            }
-            
-            /* Parágrafos */
-            .doc .editor-paragraph,
-            .doc .editor-container p {
-              margin-bottom: 16px;
-              color: var(--dark-text);
-              font-size: 14px;
-              line-height: 1.7;
-            }
-            
-            /* Listas - igual ao style.css */
-            .doc .editor-list-ul,
-            .doc .editor-list-ol,
-            .doc .editor-container ul,
-            .doc .editor-container ol {
-              padding-left: 0;
-              margin-left: 0;
-              margin-bottom: 20px;
-            }
-            
-            .doc .editor-list-ul,
-            .doc .editor-container ul {
-              list-style: none;
-            }
-            
-            .doc .editor-list-item,
-            .doc .editor-container ul li {
-              position: relative;
-              padding-left: 36px;
-              margin-bottom: 14px;
-              color: var(--dark-text);
-              line-height: 1.6;
-              font-size: 14px;
-            }
-            
-            .doc .editor-container ul li::before {
-              content: "";
-              position: absolute;
-              top: 6px;
-              left: 8px;
-              width: 10px;
-              height: 10px;
-              background: linear-gradient(135deg, var(--primary-orange) 0%, var(--orange-accent-strong) 100%);
-              border-radius: 50%;
-              box-shadow: 0 2px 6px rgba(255, 94, 43, 0.35), 0 0 0 3px rgba(255, 94, 43, 0.15);
-            }
-            
-            .doc .editor-list-ol,
-            .doc .editor-container ol {
-              counter-reset: list-item;
-              list-style: none;
-            }
-            
-            .doc .editor-container ol li {
-              counter-increment: list-item;
-              position: relative;
-              padding-left: 44px;
-              margin-bottom: 12px;
-            }
-            
-            .doc .editor-container ol li::before {
-              content: counter(list-item);
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 32px;
-              height: 32px;
-              border-radius: 8px;
-              background: linear-gradient(135deg, rgba(255, 249, 213, 0.9) 0%, rgba(255, 249, 213, 0.5) 100%);
-              border: 2px solid var(--medium-blue);
-              color: var(--medium-blue);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-weight: 700;
-              font-size: 14px;
-            }
-            
-            /* Negrito - igual ao style.css */
-            .doc .editor-text-bold,
-            .doc .editor-container strong {
-              color: var(--primary-orange);
-              font-weight: 600;
-            }
-            
-            .doc .editor-text-italic,
-            .doc .editor-container em {
-              font-style: italic;
-            }
-            
-            .doc .editor-text-underline,
-            .doc .editor-container u {
-              text-decoration: underline;
-            }
-            
-            .doc .editor-text-strikethrough {
-              text-decoration: line-through;
-            }
-            
-            .doc .editor-text-code,
-            .doc .editor-code,
-            .doc .editor-container code {
-              background: var(--orange-accent-light);
-              color: var(--medium-blue);
-              padding: 2px 6px;
-              border-radius: 3px;
-              font-size: 0.9em;
-              font-family: 'Courier New', monospace;
-            }
-            
-            /* Tabelas - igual ao style.css */
-            .doc .editor-table,
-            .doc .editor-container table {
-              width: 100% !important;
-              table-layout: fixed;
-              border-collapse: separate;
-              border-spacing: 0;
-              margin-block: 32px;
-              box-shadow: 0 1px 3px rgba(21, 41, 55, 0.1), 0 2px 8px rgba(21, 41, 55, 0.08);
-              border-radius: 12px;
-              overflow: hidden;
-              border: 1px solid rgba(255, 94, 43, 0.15);
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-            
-            .doc .editor-table-cell-header,
-            .doc .editor-container th {
-              background: rgba(255, 94, 43, 0.75) !important;
-              color: var(--light-text) !important;
-              padding: 4px 8px !important;
-              text-align: left !important;
-              font-weight: 700 !important;
-              font-size: 0.85rem !important;
-              border: 1px solid rgba(255, 94, 43, 0.15) !important;
-              letter-spacing: 0.03em;
-              text-transform: uppercase;
-            }
-            
-            .doc .editor-table-cell,
-            .doc .editor-container td {
-              padding: 4px 8px !important;
-              border: 1px solid rgba(255, 94, 43, 0.15) !important;
-              background: rgba(255, 255, 255, 0.9) !important;
-              color: var(--dark-text) !important;
-              font-size: 0.9rem !important;
-            }
-            
-            .doc .editor-container tbody tr:nth-child(even) {
-              background-color: rgba(255, 249, 213, 0.15);
-            }
-            
-            /* Normaliza estilos inline de tabelas */
+            /* Normalização de estilos inline gerados pelo Lexical em tabelas */
             .doc .editor-container table[style] {
               width: 100% !important;
               table-layout: fixed !important;
             }
-            
             .doc .editor-container th[style],
             .doc .editor-container td[style] {
               width: auto !important;
               height: auto !important;
             }
-            
-            /* Blockquote - igual ao style.css */
-            .doc .editor-quote,
-            .doc .editor-container blockquote {
-              position: relative;
-              margin: 24px auto;
-              padding: 24px 28px 24px 32px;
-              background: linear-gradient(135deg, rgba(255, 249, 213, 0.9) 0%, rgba(255, 249, 213, 0.5) 100%);
-              color: var(--medium-blue);
-              border-radius: 16px;
-              border-left: 5px solid var(--primary-orange);
-              box-shadow: 0 2px 8px rgba(21, 41, 55, 0.08), 0 1px 3px rgba(21, 41, 55, 0.1);
-              font-style: italic;
-              line-height: 1.7;
+
+            /* Header laranja quando não houver THEAD no conteúdo do editor */
+            .doc .editor-container table tr:first-child th {
+              background: rgba(255, 94, 43, 0.75);
             }
-            
-            /* HR - igual ao style.css */
-            .doc .editor-container hr {
-              height: 6px;
-              width: 320px;
-              background: linear-gradient(90deg, transparent 0%, var(--primary-orange) 20%, var(--primary-orange) 80%, transparent 100%);
-              border: none;
-              border-radius: 20px;
-              margin: 32px auto;
-              box-shadow: 0 2px 8px rgba(255, 94, 43, 0.25);
+            /* Corpo branco para contraste com fundo da página do editor */
+            .doc .editor-container table tbody tr {
+              background-color: #FFFFFF;
             }
-            
-            /* Links */
-            .doc .editor-container a {
-              color: var(--medium-blue);
-              text-decoration: none;
-              border-bottom: 2px solid var(--orange-accent-light);
-              font-weight: 500;
+            /* Zebra igual ao template */
+            .doc .editor-container table tbody tr:nth-child(even) {
+              background-color: rgba(255, 249, 213, 0.15);
             }
-            
-            .doc .editor-container a:hover {
-              color: var(--primary-orange);
-              border-bottom-color: var(--primary-orange);
-            }
-            
-            /* Selection */
-            .doc .editor-container ::selection {
-              background: var(--orange-accent-medium);
-            }
+
+            /* Overrides para layout 'padrao' (iguais ao preview) */
+            ${resolvedLayout === 'padrao' ? `
+              .doc .main-container { min-height: auto !important; }
+              .doc .document-main { padding: 20px !important; margin: 0 !important; }
+              .doc #content, .doc #content * {
+                page-break-before: auto !important;
+                page-break-after: auto !important;
+                page-break-inside: auto !important;
+                break-before: auto !important;
+                break-after: auto !important;
+                break-inside: auto !important;
+              }
+            ` : ''}
           `}</style>
+          {/* Cabeçalho visual (não editável), apenas para alinhar as quebras */}
+          
+            <div ref={headerRef} className="w-full h-[262.39px] flex justify-center items-center border border-dashed bg-[#152937]/20 rounded-md border-[#152937]/10  select-none">
+              <h1 className="text-[#152937]">Cabeçalho</h1>
+            </div>
+          
           <RichTextPlugin
             contentEditable={
               <ContentEditable
+                id="content"
                 className="editor-container focus:outline-none"
                 aria-label="Editor de texto rico"
               />
@@ -912,18 +911,20 @@ export const RichTextEditor = ({
               </div>
             )}
           />
-          <HistoryPlugin />
-          <ListPlugin />
-          <TablePlugin />
-          <TabIndentationPlugin />
-          <KeyboardShortcutsPlugin />
-          <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
-          <InitialContentPlugin content={content} />
-          <AutoFocusPlugin />
+          <div className="bg-black flex flex-col">
+            <HistoryPlugin />
+            <ListPlugin />
+            <TablePlugin />
+            <TabIndentationPlugin />
+            <KeyboardShortcutsPlugin />
+            <OnChangePlugin onChange={handleChange} ignoreSelectionChange />
+            <InitialContentPlugin content={content} />
+            <AutoFocusPlugin />
+          </div>
         </div>
       </LexicalComposer>
       {legendCopy && (
-        <div className="mt-3 flex items-center gap-3 rounded-md border border-dashed border-[#ff5e2b]/40 bg-[#fff9d5]/60 px-3 py-2 text-xs text-[#154C71]/80">
+        <div className="hidden mt-3 items-center gap-3 rounded-md border border-dashed border-[#ff5e2b]/40 bg-[#fff9d5]/60 px-3 py-2 text-xs text-[#154C71]/80">
           <span className="h-px flex-1 bg-linear-to-r from-transparent via-[#ff5e2b]/60 to-transparent" />
           <span className="whitespace-nowrap font-medium text-[#ff5e2b]">
             Quebra de página

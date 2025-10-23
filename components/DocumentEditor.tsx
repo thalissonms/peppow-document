@@ -123,7 +123,7 @@ export const DocumentEditor = ({
             />
           </div>
           {showPaginationLegend && (
-            <div className="rounded-lg border border-dashed border-[#ff5e2b]/40 bg-[#fff9d5]/60 p-3 text-xs text-[#154C71]/90">
+            <div className="hidden rounded-lg border border-dashed border-[#ff5e2b]/40 bg-[#fff9d5]/60 p-3 text-xs text-[#154C71]/90">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold text-[#ff5e2b]">
                   {paginationCopy[pdfLayout].title}
@@ -156,7 +156,7 @@ export const DocumentEditor = ({
         </CardContent>
       </Card>
 
-      <Card className="border-[rgba(255,94,43,0.25)]">
+      <Card className="border-[rgba(255,94,43,0.25)] pb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

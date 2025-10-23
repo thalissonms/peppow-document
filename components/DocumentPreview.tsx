@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "./ui/Select";
 import { RichTextEditor } from "./RichTextEditor";
-import { BrandConfig, PdfLayout } from "@/types/ui";
+import { BrandConfig, PdfLayout, DocumentMeta } from "@/types/ui";
 
 interface DocumentPreviewProps {
   previewHTML: string;
@@ -28,6 +28,7 @@ interface DocumentPreviewProps {
   loading?: boolean;
   pdfLayout?: PdfLayout;
   onPdfLayoutChange?: (layout: PdfLayout) => void;
+  meta?: DocumentMeta;
 }
 
 export const DocumentPreview = ({
@@ -40,6 +41,7 @@ export const DocumentPreview = ({
   loading = false,
   pdfLayout = "padrao",
   onPdfLayoutChange,
+  meta,
 }: DocumentPreviewProps) => {
   const [mode, setMode] = useState<"preview" | "edit">("preview");
   const cardRef = useRef<HTMLDivElement>(null);
@@ -82,7 +84,9 @@ export const DocumentPreview = ({
               <SelectContent className="p-0">
                 <SelectItem value="padrao">Sem paginação</SelectItem>
                 <SelectItem value="a4">A4</SelectItem>
-                <SelectItem value="apresentacao">Apresentação (16:9)</SelectItem>
+                <SelectItem value="apresentacao">
+                  Apresentação (16:9)
+                </SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -129,6 +133,7 @@ export const DocumentPreview = ({
             onChange={onContentChange}
             brandConfig={brandConfig}
             pdfLayout={pdfLayout}
+            meta={meta}
           />
         )}
       </CardContent>

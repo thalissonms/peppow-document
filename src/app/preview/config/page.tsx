@@ -186,12 +186,12 @@ export default function App() {
     setSuccess("Configurações restauradas para o padrão!");
   };
 
-  // Gera preview sempre que o HTML ou configurações mudarem
+  // Gera preview sempre que HTML, layout ou brandConfig mudarem
   useEffect(() => {
     if (html) {
       generatePreview(html, pdfLayout);
     }
-  }, [html, pdfLayout, generatePreview]);
+  }, [html, pdfLayout, brandConfig, generatePreview]);
 
   return (
     <div className="min-h-screen bg-[#fff9d5] text-[#152937]">
@@ -250,13 +250,13 @@ export default function App() {
                 value="upload"
                 className="data-[state=active]:bg-[#ff5e2b] data-[state=active]:text-white data-[state=active]:data-[state=active]:inset-shadow-sm inset-shadow-black/20 text-gray-600 p-4"
               >
-                {!file ? <Upload className="w-20 h-20 stroke-2" /> : <FileBox className="w-20 h-20 stroke-2" />}
+                {!file ? <Upload className="stroke-2" /> : <FileBox className="w-20 h-20 stroke-2" />}
               </TabsTrigger>
               <TabsTrigger
                 value="config"
                 className="data-[state=active]:bg-[#ff5e2b] data-[state=active]:text-white data-[state=active]:inset-shadow-sm inset-shadow-black/20 text-gray-600 p-4"
               >
-                <Settings className="w-20 h-20 stroke-2" />
+                <Settings className="stroke-2" />
               </TabsTrigger>
             </TabsList>
 
@@ -288,6 +288,7 @@ export default function App() {
                     loading={loading}
                     pdfLayout={pdfLayout}
                     onPdfLayoutChange={setPdfLayout}
+                    meta={meta}
                   />
                 </div>
               )}
@@ -308,7 +309,7 @@ export default function App() {
         {/* Footer */}
         <footer className="mt-8 text-center">
           <p className="text-xs text-[#ff5e2b] opacity-60">
-            Versão Beta 1.0.2 - Sistema de Padronização de Documentos
+            Versão Beta 1.0.3
           </p>
         </footer>
       </div>

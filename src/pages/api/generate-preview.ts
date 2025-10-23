@@ -1,8 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getCachedCustomizedCSS } from "@/lib/styleGenerator";
 import { BrandConfig } from "@/types/ui";
+import { DEFAULT_BRAND_CONFIG } from "@/lib/constants";
 import fs from "fs/promises";
 import path from "path";
+import { normalizeTables } from "@/utils/normalizeTables";
+import { applyLogoContainer } from "@/utils/template";
 
 type DocumentMeta = {
   headerLabel: string;
@@ -12,13 +15,7 @@ type DocumentMeta = {
   description?: string;
 };
 
-const DEFAULT_BRAND_CONFIG: BrandConfig = {
-  logo: null,
-  primaryColor: "#ff5e2b",
-  secondaryColor: "#152937",
-  accentColor: "#154c71",
-  backgroundColor: "#fff9d5",
-};
+// DEFAULT_BRAND_CONFIG agora vem de '@/lib/constants'
 
 /**
  * Gera o HTML completo do documento com template e estilos customizados
@@ -31,11 +28,8 @@ const buildDocumentHtml = async (
 ) => {
   const templateDir = path.join(process.cwd(), "public", "templates", "document");
 
-  // Carrega o template HTML e o logo padrão
-  const [template, logoBase64] = await Promise.all([
-    fs.readFile(path.join(templateDir, "index.html"), "utf-8"),
-    fs.readFile(path.join(templateDir, "assets", "logo.png"), { encoding: "base64" }),
-  ]);
+  // Carrega apenas o template HTML; o logo padrão é o SVG inline do template
+  const template = await fs.readFile(path.join(templateDir, "index.html"), "utf-8");
 
   // Obtém o CSS customizado com cache
   const customizedCSS = await getCachedCustomizedCSS(brand);
@@ -49,13 +43,9 @@ const buildDocumentHtml = async (
   // CSS adicional para layout padrão (sem paginação)
   const padraoOverrides = layout === "padrao" ? `
     <style id="pdf-overrides">
-      /* Remover tamanho A4 e margens impostas pelo @page padrão */
-      @page { size: auto; margin: 0; }
-      /* Evitar blocos com altura de viewport que centralizam conteúdo */
+
       .doc .main-container { min-height: auto !important; }
-      /* Remover padding/margem exagerados que aparentam "centralização" */
       .doc .document-main { padding: 20px !important; margin: 0 !important; }
-      /* Não forçar anti-quebra em excesso para permitir fluxo contínuo */
       .doc #content, .doc #content * {
         page-break-before: auto !important;
         page-break-after: auto !important;
@@ -67,8 +57,15 @@ const buildDocumentHtml = async (
     </style>
   ` : "";
 
+  // Variáveis para logo (opcionais) vindas do BrandConfig
+  const logoVars = `<style id="brand-logo-vars">.doc{${
+    typeof brand.logoHeight === 'number' ? `--logo-height:${brand.logoHeight}px;` : ''
+  }${
+    typeof brand.logoMaxWidth === 'number' ? `--logo-max-width:${brand.logoMaxWidth}px;` : ''
+  }}</style>`;
+
   // Injeta os estilos no template
-  const inlineStyles = `<style>${customizedCSS}</style>${padraoOverrides}`;
+  const inlineStyles = `<style>${customizedCSS}</style>${logoVars}${padraoOverrides}`;
   const templateWithStyles = template.replace("</head>", `${inlineStyles}</head>`);
 
   // Substitui placeholders de metadados
@@ -80,14 +77,11 @@ const buildDocumentHtml = async (
     .replace(/{{TITLE}}/g, meta.title || "Documento")
     .replace(/{{DESCRIPTION}}/g, meta.description || "");
 
-  // Logo: usa o logo da marca ou o padrão
-  const selectedLogo = brand.logo && brand.logo.startsWith("data:")
-    ? brand.logo
-    : `data:image/png;base64,${logoBase64}`;
-  const withLogo = templateWithMeta.replace(/{{LOGO_SRC}}/g, selectedLogo);
+  // Aplica logo do usuário (se houver), mantendo o SVG padrão quando não houver
+  const templateWithLogo = applyLogoContainer(templateWithMeta, brand.logo);
 
   // Injeta o conteúdo do documento
-  return withLogo.replace("{{CONTENT}}", docHtml);
+  return templateWithLogo.replace("{{CONTENT}}", docHtml);
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -96,14 +90,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { html, meta, brandConfig, layout = "a4" } = req.body;
+  const { html, meta, brandConfig, layout = "a4" } = req.body;
 
     if (!html || !meta) {
       return res.status(400).json({ error: "HTML e metadados são obrigatórios" });
     }
 
-    const brand = brandConfig || DEFAULT_BRAND_CONFIG;
-    const documentHTML = await buildDocumentHtml(html, meta, brand, layout);
+  const brand = brandConfig || DEFAULT_BRAND_CONFIG;
+  // Normaliza tabelas (Lexical -> thead/tbody; corrige thead com várias linhas)
+  const normalized = normalizeTables(html);
+  const documentHTML = await buildDocumentHtml(normalized, meta, brand, layout);
 
     res.status(200).json({ html: documentHTML });
   } catch (error) {
