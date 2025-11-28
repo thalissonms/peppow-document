@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import formidable, { File as FormidableFile, Files, Fields } from "formidable";
 import { promises as fs } from "node:fs";
 import mammoth, { Image as MammothImage } from "mammoth";
+import { enhanceHeadings } from "@/utils/headingHelpers";
 
 export const config = {
   api: {
@@ -55,64 +56,8 @@ const toInlineImages = () =>
     };
   });
 
-const headingPattern = /^([0-9]+(?:\.[0-9]+)*)(?:\s*[-–—:]\s*)?(.*)$/;
-
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const mergeClassAttribute = (attrs: string | undefined, className: string) => {
-  if (!attrs || !attrs.trim()) {
-    return ` class="${className}"`;
-  }
-
-  const attrString = attrs.trim();
-  const doubleMatch = attrString.match(/class="([^"]*)"/);
-  if (doubleMatch) {
-    const classes = doubleMatch[1].split(/\s+/).filter(Boolean);
-    if (!classes.includes(className)) {
-      classes.push(className);
-    }
-    return ` ${attrString.replace(doubleMatch[0], `class="${classes.join(" ")}"`)}`;
-  }
-
-  const singleMatch = attrString.match(/class='([^']*)'/);
-  if (singleMatch) {
-    const classes = singleMatch[1].split(/\s+/).filter(Boolean);
-    if (!classes.includes(className)) {
-      classes.push(className);
-    }
-    return ` ${attrString.replace(singleMatch[0], `class='${classes.join(" ")}'`)}`;
-  }
-
-  return ` ${attrString} class="${className}"`;
-};
-
-const enhanceHeadings = (html: string) => {
-  return html.replace(/<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/gi, (match, level, attrs, inner) => {
-    if (inner.includes("heading-number")) {
-      return match;
-    }
-
-    const textContent = inner.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-
-    if (!textContent) {
-      return `<h${level}${attrs}>${inner}</h${level}>`;
-    }
-
-    const numberMatch = textContent.match(headingPattern);
-
-    if (!numberMatch) {
-      const mergedAttrs = mergeClassAttribute(attrs, "doc-heading");
-      return `<h${level}${mergedAttrs}>${inner}</h${level}>`;
-    }
-
-    const [, rawNumber] = numberMatch as RegExpMatchArray;
-    const cleanPattern = new RegExp(`^\\s*${escapeRegExp(rawNumber)}(?:\\s*[-–—:]\\s*)?`, "i");
-    const cleanedInner = inner.replace(cleanPattern, "").trim();
-    const titleSpan = cleanedInner ? `<span class="heading-text">${cleanedInner}</span>` : "";
-    const mergedAttrs = mergeClassAttribute(attrs, "doc-heading");
-    return `<h${level}${mergedAttrs}>${titleSpan}</h${level}>`;
-  });
-};
+// Note: escapeRegExp and mergeClassAttribute are now in @/utils/headingHelpers
+// Keeping imports to maintain API compatibility if needed
 
 const extractTitleFromHtml = (html: string) => {
   const firstHeading = html.match(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/i);

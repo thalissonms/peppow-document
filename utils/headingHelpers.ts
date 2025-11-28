@@ -58,43 +58,63 @@ export const mergeClassAttribute = (attrs: string | undefined, className: string
 };
 
 /**
- * Processa headings HTML para adicionar classes e estrutura semântica
+ * Processa headings HTML para adicionar classes, estrutura semântica e numeração automática
  * 
  * Comportamentos:
  * - Adiciona classe "doc-heading" a todos os headings
- * - Remove numeração do conteúdo (ex: "1.2 Título" → "<span>Título</span>")
+ * - Gera numeração crescente automática (1, 1.1, 1.2, etc.) baseada no nível
+ * - Remove numeração existente do conteúdo (ex: "1.2 Título" → "<span>Título</span>")
  * - Ignora headings que já possuem "heading-number"
  * 
  * @param html - String HTML a processar
- * @returns HTML com headings processados
+ * @returns HTML com headings processados e numeração corrida
  * 
  * @example
- * enhanceHeadings('<h2>1.2 - Título</h2>')
- * // retorna '<h2 class="doc-heading"><span class="heading-text">Título</span></h2>'
+ * enhanceHeadings('<h1>Introdução</h1><h2>1.2 - Conceitos</h2><h2>1.3 - Definições</h2>')
+ * // retorna com números: 1, 2, 3 para H1 e 1, 1, 2 para H2 (corrigido automaticamente)
  */
 export const enhanceHeadings = (html: string) => {
-  return html.replace(/<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/gi, (match, level, attrs, inner) => {
+  // Rastreadores de contadores por nível
+  const counters = [0, 0, 0, 0, 0, 0]; // h1, h2, h3, h4, h5, h6
+
+  return html.replace(/<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/gi, (match, levelStr, attrs, inner) => {
+    const level = parseInt(levelStr, 10); // 1-6
+    const levelIndex = level - 1; // 0-5
+
     // Ignora headings já processados
     if (inner.includes("heading-number")) return match;
 
     const textContent = inner.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     if (!textContent) return `<h${level}${attrs}>${inner}</h${level}>`;
 
-    const numberMatch = textContent.match(headingPattern);
-    
-    // Sem numeração: apenas adiciona classe
-    if (!numberMatch) {
-      const mergedAttrs = mergeClassAttribute(attrs, "doc-heading");
-      return `<h${level}${mergedAttrs}>${inner}</h${level}>`;
+    // Incrementa counter do nível atual
+    counters[levelIndex]++;
+
+    // Reset de contadores de níveis mais profundos
+    for (let i = levelIndex + 1; i < 6; i++) {
+      counters[i] = 0;
     }
 
-    // Com numeração: extrai número e texto
-    const [, rawNumber] = numberMatch;
-    const cleanPattern = new RegExp(`^\\s*${escapeRegExp(rawNumber)}(?:\\s*[-–—:]\\s*)?`, "i");
-    const cleanedInner = inner.replace(cleanPattern, "").trim();
+    // Gera número hierárquico (ex: 1.2.3)
+    const numberParts = counters.slice(0, level).map(String);
+    const generatedNumber = numberParts.join(".");
+
+    // Extrai conteúdo do heading, removendo número antigo se existir
+    const numberMatch = textContent.match(headingPattern);
+    let cleanedInner = inner;
+
+    if (numberMatch) {
+      // Se encontrou número antigo, remove dele
+      const [, rawNumber] = numberMatch;
+      const cleanPattern = new RegExp(`^\\s*${escapeRegExp(rawNumber)}(?:\\s*[-–—:]\\s*)?`, "i");
+      cleanedInner = inner.replace(cleanPattern, "").trim();
+    }
+
+    // Cria o heading com número circular e texto
     const titleSpan = cleanedInner ? `<span class="heading-text">${cleanedInner}</span>` : "";
+    const numberSpan = `<span class="heading-number">${generatedNumber}</span>`;
     const mergedAttrs = mergeClassAttribute(attrs, "doc-heading");
-    
-    return `<h${level}${mergedAttrs}>${titleSpan}</h${level}>`;
+
+    return `<h${level}${mergedAttrs}>${numberSpan}${titleSpan}</h${level}>`;
   });
 };
