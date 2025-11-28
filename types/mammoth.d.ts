@@ -32,7 +32,7 @@ declare module "mammoth" {
   }
 
   export function convertToHtml(
-    input: { path: string },
+    input: { path: string } | { arrayBuffer: ArrayBuffer },
     options?: ConvertToHtmlOptions
   ): Promise<HtmlResult>;
 
