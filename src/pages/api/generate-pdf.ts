@@ -5,6 +5,7 @@ import path from "node:path";
 import mammoth, { Image as MammothImage } from "mammoth";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import { enhanceHeadings } from "@/utils/headingHelpers";
 
 export const config = {
   api: {
@@ -59,38 +60,6 @@ const toInlineImages = () =>
     };
   });
 
-const headingPattern = /^([0-9]+(?:\.[0-9]+)*)(?:\s*[-–—:]\s*)?(.*)$/;
-
-const escapeRegExp = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const mergeClassAttribute = (attrs: string | undefined, className: string) => {
-  if (!attrs || !attrs.trim()) {
-    return ` class="${className}"`;
-  }
-
-  const attrString = attrs.trim();
-  const doubleMatch = attrString.match(/class="([^"]*)"/);
-  if (doubleMatch) {
-    const classes = doubleMatch[1].split(/\s+/).filter(Boolean);
-    if (!classes.includes(className)) {
-      classes.push(className);
-    }
-    return ` ${attrString.replace(doubleMatch[0], `class="${classes.join(" ")}"`)}`;
-  }
-
-  const singleMatch = attrString.match(/class='([^']*)'/);
-  if (singleMatch) {
-    const classes = singleMatch[1].split(/\s+/).filter(Boolean);
-    if (!classes.includes(className)) {
-      classes.push(className);
-    }
-    return ` ${attrString.replace(singleMatch[0], `class='${classes.join(" ")}'`)}`;
-  }
-
-  return ` ${attrString} class="${className}"`;
-};
-
 // Mapeia estilos do Word (EN/PT-BR) para HTML semântico usando Mammoth StyleMap
 // Referência: https://mwilliamson.github.io/mammoth/#style-mappings
 const styleMap: string[] = [
@@ -134,49 +103,6 @@ const styleMap: string[] = [
   "r[style-name='Strong'] => strong",
   "r[style-name='Negrito'] => strong",
 ];
-
-const enhanceHeadings = (html: string) => {
-  return html.replace(
-    /<h([1-6])([^>]*)>([\s\S]*?)<\/h\1>/gi,
-    (match, level, attrs, inner) => {
-      if (inner.includes("heading-number")) {
-        return match;
-      }
-
-      const textContent = inner
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      if (!textContent) {
-        return `<h${level}${attrs}>${inner}</h${level}>`;
-      }
-
-      const numberMatch = textContent.match(headingPattern);
-
-      if (!numberMatch) {
-        const mergedAttrs = mergeClassAttribute(attrs, "doc-heading");
-        return `<h${level}${mergedAttrs}>${inner}</h${level}>`;
-      }
-
-      const [, rawNumber] = numberMatch;
-
-      // Remover o número do início do título (e o separador), sem exibir badge numérico
-      const cleanPattern = new RegExp(
-        `^\\s*${escapeRegExp(rawNumber)}(?:\\s*[-–—:]\\s*)?`,
-        "i"
-      );
-      const cleanedInner = inner.replace(cleanPattern, "").trim();
-      const titleSpan = cleanedInner
-        ? `<span class="heading-text">${cleanedInner}</span>`
-        : "";
-      const mergedAttrs = mergeClassAttribute(attrs, "doc-heading");
-
-      // Agora retornamos apenas o texto do título, sem o número inicial
-      return `<h${level}${mergedAttrs}>${titleSpan}</h${level}>`;
-    }
-  );
-};
 
 // Novo: extrai o primeiro título (H1..H6) como texto puro
 const extractTitleFromHtml = (html: string) => {

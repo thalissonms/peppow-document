@@ -164,7 +164,7 @@ Você PODE e DEVE criar novas classes Tailwind CSS seguindo este padrão:
 ✅ COMPONENTES VISUAIS (CRIE conforme necessário):
 
 Seção com número circular:
-<div class="flex gap-[10px] items-center mb-[20px]">
+<div class="flex gap-2.5 items-center mb-5">
   <div class="relative size-[38px]">
     <div class="bg-[rgba(255,94,43,0.2)] rounded-[5px] size-full border-[0.5px] border-[#ff5e2b]"></div>
   <div class="absolute inset-0 flex items-center justify-center font-['Kanit:Bold',sans-serif] text-[22px] text-[#ff5e2b]">1</div>
@@ -186,12 +186,12 @@ Tabela profissional:
 <table class="w-full border-collapse">
   <thead>
     <tr class="bg-[rgba(255,94,43,0.8)]">
-  <th class="px-[15px] py-[10px] font-['Kanit:SemiBold',sans-serif] text-[#fff9d5]">Coluna</th>
+  <th class="px-[15px] py-2.5 font-['Kanit:SemiBold',sans-serif] text-[#fff9d5]">Coluna</th>
     </tr>
   </thead>
   <tbody>
     <tr class="bg-[rgba(255,255,255,0.9)]">
-  <td class="px-[15px] py-[10px] font-['Kanit:Regular',sans-serif] text-[14px]">Dado</td>
+  <td class="px-[15px] py-2.5 font-['Kanit:Regular',sans-serif] text-[14px]">Dado</td>
     </tr>
   </tbody>
 </table>
@@ -203,7 +203,7 @@ Card de destaque:
 </div>
 
 Badge/Tag:
-<div class="inline-flex bg-[rgba(21,76,113,0.25)] border border-[#154c71] rounded-[5px] px-[10px] py-[5px]">
+<div class="inline-flex bg-[rgba(21,76,113,0.25)] border border-[#154c71] rounded-[5px] px-2.5 py-[5px]">
   <span class="font-['Kanit:SemiBold',sans-serif] text-[#154c71] text-[14px]">Tag</span>
 </div>
 
