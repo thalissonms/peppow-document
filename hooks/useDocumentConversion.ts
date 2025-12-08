@@ -1,5 +1,5 @@
 import { useState } from "react";
-import mammoth from "mammoth";
+import mammoth, { Image as MammothImage } from "mammoth";
 import { DocumentMeta } from "@/types/ui";
 
 export const useDocumentConversion = () => {
@@ -17,8 +17,17 @@ export const useDocumentConversion = () => {
     setError(null);
 
     try {
+      const toInlineImages = () =>
+        mammoth.images.inline(async (element: MammothImage) => {
+          const base64 = await element.read("base64");
+          return { src: `data:${element.contentType};base64,${base64}` };
+        });
+
       const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.convertToHtml({ arrayBuffer });
+      const result = await mammoth.convertToHtml(
+        { arrayBuffer },
+        { convertImage: toInlineImages(), includeDefaultStyleMap: true }
+      );
       
       setHtml(result.value);
       

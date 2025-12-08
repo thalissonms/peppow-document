@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useState, useRef } from "react";
+import type { JSX } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -49,6 +50,8 @@ import {
   $createParagraphNode,
   EditorState,
   LexicalEditor,
+  NodeKey,
+  DecoratorNode,
 } from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $setBlocksType, $patchStyleText } from "@lexical/selection";
@@ -76,6 +79,84 @@ import { Separator } from "./ui/Separator";
 import { EditorHelp } from "./EditorHelper";
 import { BrandConfig, PdfLayout, DocumentMeta } from "@/types/ui";
 import { HoverPopover } from "./ui/HoverPopover";
+
+// ---- Image support (keeps <img> from DOCX) ----
+class ImageNode extends DecoratorNode<JSX.Element> {
+  __src: string;
+  __altText: string;
+
+  static getType(): string {
+    return "image";
+  }
+
+  static clone(node: ImageNode): ImageNode {
+    return new ImageNode(node.__src, node.__altText, node.getKey());
+  }
+
+  constructor(src: string, altText: string, key?: NodeKey) {
+    super(key);
+    this.__src = src;
+    this.__altText = altText;
+  }
+
+  createDOM(): HTMLElement {
+    const span = document.createElement("span");
+    return span;
+  }
+
+  updateDOM(): false {
+    return false;
+  }
+
+  decorate(): JSX.Element {
+    return (
+      <img
+        src={this.__src}
+        alt={this.__altText}
+        className="max-w-full h-auto"
+        loading="lazy"
+      />
+    );
+  }
+
+  static importDOM() {
+    return {
+      img: (domNode: Node) => {
+        if (!(domNode instanceof HTMLImageElement)) return null;
+        return {
+          conversion: () => $createImageNode(domNode.src, domNode.alt || ""),
+          priority: 1,
+        };
+      },
+    };
+  }
+
+  exportDOM(): { element: HTMLElement } {
+    const img = document.createElement("img");
+    img.setAttribute("src", this.__src);
+    if (this.__altText) img.setAttribute("alt", this.__altText);
+    img.className = "max-w-full h-auto";
+    return { element: img };
+  }
+
+  static importJSON(serializedNode: { src: string; altText: string }): ImageNode {
+    return $createImageNode(serializedNode.src, serializedNode.altText);
+  }
+
+  exportJSON(): { src: string; altText: string; type: string; version: 1 } {
+    return {
+      ...super.exportJSON(),
+      type: "image",
+      version: 1,
+      src: this.__src,
+      altText: this.__altText,
+    };
+  }
+}
+
+const $createImageNode = (src: string, altText = ""): ImageNode =>
+  new ImageNode(src, altText);
+
 
 interface RichTextEditorProps {
   content: string;
@@ -683,6 +764,7 @@ export const RichTextEditor = ({
       HorizontalRuleNode,
       LinkNode,
       AutoLinkNode,
+      ImageNode,
     ],
   };
 
