@@ -38,6 +38,7 @@ const INITIAL_AI_OPTIONS: AIEnhancementOptions = {
 };
 
 export default function PreviewPage() {
+  const [mounted, setMounted] = useState(false);
   const [html, setHtml] = useState<string>("");
   const [meta, setMeta] = useState<Meta>(INITIAL_META);
   const [aiOptions, setAiOptions] = useState<AIEnhancementOptions>(INITIAL_AI_OPTIONS);
@@ -60,6 +61,13 @@ export default function PreviewPage() {
   const [shouldAttachEditor, setShouldAttachEditor] = useState(false);
   const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+
+  // Render only after client hydration to avoid dev-time mismatch noise from extensions
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   useEffect(() => {
     latestHtmlRef.current = html;
