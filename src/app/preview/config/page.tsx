@@ -207,10 +207,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fff9d5] text-[#152937]">
+    <div className="min-h-screen bg-[#fff9d5] text-[#152937]" suppressHydrationWarning>
       
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8" suppressHydrationWarning>
         {/* Header */}
         <header className="mb-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
