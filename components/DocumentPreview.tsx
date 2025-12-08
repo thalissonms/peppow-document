@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, memo } from "react";
 import { Download, Eye, Edit3 } from "lucide-react";
 import {
   Card,

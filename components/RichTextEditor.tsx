@@ -1,5 +1,4 @@
 import { useEffect, useCallback, useState, useRef } from "react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/Popover";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -31,7 +30,6 @@ import {
 import { TablePlugin } from "@lexical/react/LexicalTablePlugin";
 import {
   HorizontalRuleNode,
-  $createHorizontalRuleNode,
   INSERT_HORIZONTAL_RULE_COMMAND,
 } from "@lexical/react/LexicalHorizontalRuleNode";
 import { LinkNode } from "@lexical/link";
@@ -47,18 +45,13 @@ import {
   CAN_UNDO_COMMAND,
   CAN_REDO_COMMAND,
   COMMAND_PRIORITY_CRITICAL,
-  COMMAND_PRIORITY_LOW,
   SELECTION_CHANGE_COMMAND,
   $createParagraphNode,
-  $createTextNode,
   EditorState,
   LexicalEditor,
-  ElementNode,
-  TextFormatType,
 } from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $setBlocksType, $patchStyleText } from "@lexical/selection";
-import { $insertNodes, $isParagraphNode } from "lexical";
 import {
   Bold,
   Italic,
@@ -75,7 +68,6 @@ import {
   Code,
   Strikethrough,
   Underline as UnderlineIcon,
-  Link as LinkIcon,
   RemoveFormatting,
   Palette,
 } from "lucide-react";
@@ -117,7 +109,7 @@ function InitialContentPlugin({ content }: { content: string }) {
         root.append(...nodes);
       });
     }
-  }, []); // Roda apenas uma vez
+  }, [content, editor]);
 
   return null;
 }
@@ -311,15 +303,6 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
     });
   };
 
-  const formatParagraph = () => {
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        $setBlocksType(selection, () => $createParagraphNode());
-      }
-    });
-  };
-
   const clearFormatting = () => {
     editor.update(() => {
       const selection = $getSelection();
@@ -399,15 +382,6 @@ function ToolbarPlugin({ brandConfig }: { brandConfig: BrandConfig }) {
       const selection = $getSelection();
       if ($isRangeSelection(selection)) {
         $patchStyleText(selection, { color });
-      }
-    });
-  };
-
-  const setHighlightColor = (color: string) => {
-    editor.update(() => {
-      const selection = $getSelection();
-      if ($isRangeSelection(selection)) {
-        $patchStyleText(selection, { backgroundColor: color });
       }
     });
   };
@@ -748,37 +722,6 @@ export const RichTextEditor = ({
     ro.observe(el);
     return () => ro.disconnect();
   }, [meta, brandConfig, resolvedLayout]);
-  const pageBreakHeight = resolvedLayout === "a4" ? 1123 : resolvedLayout === "apresentacao" ? 900 : 0;
-  const layoutCss =
-    resolvedLayout !== "padrao"
-      ? `
-            .doc[data-layout="${resolvedLayout}"] .editor-container {
-              --page-break-height: ${pageBreakHeight}px;
-            }
-            .doc[data-layout="${resolvedLayout}"] .editor-container::before {
-              content: "";
-              position: absolute;
-              inset: 0;
-              pointer-events: none;
-              background-image: linear-gradient(
-                to bottom,
-                transparent 0,
-                transparent calc(var(--page-break-height) - 2px),
-                rgba(255, 94, 43, 0.4) calc(var(--page-break-height) - 2px),
-                rgba(255, 94, 43, 0.4) calc(var(--page-break-height)),
-                transparent calc(var(--page-break-height))
-              );
-              background-size: 100% var(--page-break-height);
-              background-repeat: repeat-y;
-              /* desloca o padrão para começar após o cabeçalho */
-              background-position: left var(--header-offset, 0px);
-            }
-          `
-      : `
-            .doc[data-layout='padrao'] .editor-container::before {
-              content: none;
-            }
-          `;
   const legendCopy =
     resolvedLayout === "a4"
       ? "As linhas tracejadas mostram onde cada página A4 termina."

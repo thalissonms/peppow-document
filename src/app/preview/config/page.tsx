@@ -54,13 +54,7 @@ export default function App() {
 
   // Usa useMemo para criar um objeto estável de meta
   // Isso evita que o hook useDocumentPreview se recrie a cada render
-  const stableMeta = useMemo(() => meta, [
-    meta.title,
-    meta.description,
-    meta.headerLabel,
-    meta.headerValue,
-    meta.validityMessage,
-  ]);
+  const stableMeta = useMemo(() => meta, [meta]);
 
   const {
     previewHTML,
@@ -84,7 +78,7 @@ export default function App() {
       setAlertTimer(timer);
       return () => clearTimeout(timer);
     }
-  }, [success, error]);
+  }, [success, error, alertTimer]);
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
     setSuccess(null);

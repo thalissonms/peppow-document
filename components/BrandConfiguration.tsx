@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { useRef } from "react";
 import { ImageIcon, Palette } from "lucide-react";
 import { BrandConfig } from "@/types/ui";
@@ -78,10 +79,13 @@ export const BrandConfiguration = ({
             />
             {brandConfig.logo ? (
               <div className="flex flex-col items-center gap-4">
-                <img
+                <Image
                   src={brandConfig.logo}
                   alt="Logo"
-                  className="max-h-32 object-contain"
+                  width={256}
+                  height={128}
+                  unoptimized
+                  className="max-h-32 object-contain w-auto"
                 />
                 <p className="text-sm text-[#152937] opacity-60">
                   Clique para alterar a logo

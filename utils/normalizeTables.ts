@@ -22,7 +22,6 @@ export function normalizeTables(html: string): string {
     }
 
     const hasThead = /<thead[\s>]/i.test(inner);
-    const hasTbody = /<tbody[\s>]/i.test(inner);
 
     // Função auxiliar para extrair todas as <tr> de um bloco HTML
     const extractRows = (blockHtml: string): string[] => blockHtml.match(/<tr\b[\s\S]*?<\/tr>/gi) || [];
