@@ -52,6 +52,9 @@ import {
   LexicalEditor,
   NodeKey,
   DecoratorNode,
+  type DOMConversionMap,
+  type DOMConversionOutput,
+  type SerializedLexicalNode,
 } from "lexical";
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
 import { $setBlocksType, $patchStyleText } from "@lexical/selection";
@@ -110,23 +113,26 @@ class ImageNode extends DecoratorNode<JSX.Element> {
 
   decorate(): JSX.Element {
     return (
-      <img
-        src={this.__src}
-        alt={this.__altText}
-        className="max-w-full h-auto"
-        loading="lazy"
-      />
+      <>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={this.__src}
+          alt={this.__altText}
+          className="max-w-full h-auto"
+          loading="lazy"
+        />
+      </>
     );
   }
 
-  static importDOM() {
+  static importDOM(): DOMConversionMap | null {
     return {
       img: (domNode: Node) => {
         if (!(domNode instanceof HTMLImageElement)) return null;
         return {
-          conversion: () => $createImageNode(domNode.src, domNode.alt || ""),
+          conversion: () => ({ node: $createImageNode(domNode.src, domNode.alt || "") }) as DOMConversionOutput,
           priority: 1,
-        };
+        } as const;
       },
     };
   }
@@ -139,11 +145,11 @@ class ImageNode extends DecoratorNode<JSX.Element> {
     return { element: img };
   }
 
-  static importJSON(serializedNode: { src: string; altText: string }): ImageNode {
+  static importJSON(serializedNode: SerializedImageNode): ImageNode {
     return $createImageNode(serializedNode.src, serializedNode.altText);
   }
 
-  exportJSON(): { src: string; altText: string; type: string; version: 1 } {
+  exportJSON(): SerializedImageNode {
     return {
       ...super.exportJSON(),
       type: "image",
@@ -156,6 +162,13 @@ class ImageNode extends DecoratorNode<JSX.Element> {
 
 const $createImageNode = (src: string, altText = ""): ImageNode =>
   new ImageNode(src, altText);
+
+type SerializedImageNode = SerializedLexicalNode & {
+  src: string;
+  altText: string;
+  type: "image";
+  version: 1;
+};
 
 
 interface RichTextEditorProps {
