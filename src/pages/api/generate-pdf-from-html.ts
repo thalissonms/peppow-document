@@ -10,6 +10,15 @@ import { BrandConfig } from "@/types/ui";
 import { getCachedCustomizedCSS } from "@/lib/styleGenerator";
 import { enhanceHeadings, mergeClassAttribute } from "@/utils/headingHelpers";
 
+// Aumenta o limite padrão de 1MB do body parser para evitar 413 com HTML/Base64
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "10mb",
+    },
+  },
+};
+
 type DocumentMeta = {
   headerLabel: string;
   headerValue: string;
