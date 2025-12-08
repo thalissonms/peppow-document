@@ -67,8 +67,6 @@ export default function PreviewPage() {
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
-
   useEffect(() => {
     latestHtmlRef.current = html;
   }, [html]);
@@ -425,6 +423,16 @@ export default function PreviewPage() {
       ? "Convertendo documento…"
       : "Arraste um .docx ou clique para selecionar";
   
+
+  if (!mounted) {
+    return (
+      <div
+        className="min-h-screen bg-[#fff9d5]"
+        suppressHydrationWarning
+        aria-busy
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen px-8 md:px-12 lg:px-10 py-8 md:py-12 lg:py-16 bg-[#fff9d5] text-[#152937] flex flex-col gap-8 relative">

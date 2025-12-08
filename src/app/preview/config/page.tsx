@@ -21,6 +21,7 @@ import { DocumentMeta, AIOptions } from "@/types/ui";
 import { DEFAULT_DOCUMENT_META } from "@/lib/constants";
 
 export default function App() {
+  const [mounted, setMounted] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [meta, setMeta] = useState<DocumentMeta>(DEFAULT_DOCUMENT_META);
   const [aiOptions, setAiOptions] = useState<AIOptions>({
@@ -37,7 +38,7 @@ export default function App() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [alertTimer, setAlertTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const alertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -68,17 +69,20 @@ export default function App() {
   const error = conversionError || pdfError || aiError || previewError;
   
   useEffect(() => {
-    if (success || error) {
-      if (alertTimer) clearTimeout(alertTimer);
-      const timer = setTimeout(() => {
-        setSuccess(null);
-        setPdfError(null);
-        setAiError(null);
-      }, 5000);
-      setAlertTimer(timer);
-      return () => clearTimeout(timer);
-    }
-  }, [success, error, alertTimer]);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!success && !error) return;
+    if (alertTimerRef.current) clearTimeout(alertTimerRef.current);
+    const timer = setTimeout(() => {
+      setSuccess(null);
+      setPdfError(null);
+      setAiError(null);
+    }, 5000);
+    alertTimerRef.current = timer;
+    return () => clearTimeout(timer);
+  }, [success, error]);
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
     setSuccess(null);
@@ -205,6 +209,16 @@ export default function App() {
   const handleAIOptionsChange = (newAIOptions: AIOptions) => {
     setAiOptions(newAIOptions);
   };
+
+  if (!mounted) {
+    return (
+      <div
+        className="min-h-screen bg-[#fff9d5]"
+        suppressHydrationWarning
+        aria-busy
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fff9d5] text-[#152937]" suppressHydrationWarning>
