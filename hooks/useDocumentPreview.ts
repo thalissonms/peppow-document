@@ -33,8 +33,19 @@ export const useDocumentPreview = ({ brandConfig, documentMeta }: UseDocumentPre
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Erro ao gerar preview");
+          // Tenta interpretar a resposta como JSON; fallback para texto puro em erros 4xx (ex.: 413)
+          const isJson = response.headers.get("content-type")?.includes("application/json");
+          const payload = isJson ? await response.json() : await response.text();
+          const message =
+            response.status === 413
+              ? "Conteúdo muito grande para gerar o preview (limite ~6MB de payload). Reduza imagens ou o HTML."
+              : typeof payload === "object" && payload && "error" in payload
+              ? (payload as { error?: string }).error || "Erro ao gerar preview"
+              : typeof payload === "string" && payload.trim().length
+              ? payload
+              : "Erro ao gerar preview";
+
+          throw new Error(message);
         }
 
         const data = await response.json();
