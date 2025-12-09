@@ -10,7 +10,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@ckeditor/ckeditor5-build-classic": "41.4.2",
     "@fontsource/kanit": "^5.2.8",
     "@lexical/react": "^0.37.0",
     "@radix-ui/react-label": "^2.1.7",
@@ -23,12 +22,10 @@
     "@sparticuz/chromium": "^141.0.0",
     "class-variance-authority": "^0.7.1",
     "formidable": "^3.5.4",
-    "html2pdf.js": "^0.12.1",
     "lexical": "^0.37.0",
     "lucide-react": "^0.545.0",
     "mammoth": "^1.11.0",
     "next": "15.5.7",
-    "puppeteer": "^24.24.1",
     "puppeteer-core": "^24.3.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",

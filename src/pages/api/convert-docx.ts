@@ -2,7 +2,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import formidable, { File as FormidableFile, Files, Fields } from "formidable";
 import { promises as fs } from "node:fs";
 import mammoth, { Image as MammothImage } from "mammoth";
-import { enhanceHeadings } from "@/utils/headingHelpers";
 
 export const config = {
   api: {
@@ -116,20 +115,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { convertImage: toInlineImages(), styleMap, includeDefaultStyleMap: true }
     );
 
-    const enhancedHtml = enhanceHeadings(html);
-
     const isProposal = fields.isProposal === "true";
     const rawId = fields.proposalId?.trim() ?? "";
     const normalizedId = rawId ? (rawId.startsWith("#") ? rawId : `#${rawId}`) : "—";
     const headerLabel = isProposal ? "Proposta" : "ID";
     const validityMessage = isProposal ? (fields.proposalValidity?.trim() ?? "") : "";
 
-    const extractedTitle = extractTitleFromHtml(enhancedHtml);
+    const extractedTitle = extractTitleFromHtml(html);
     const title =
       extractedTitle || (isProposal && normalizedId !== "—" ? `Proposta ${normalizedId}` : "Documento");
 
     res.status(200).json({
-      html: enhancedHtml,
+      html: html,
       meta: {
         title,
         headerLabel,

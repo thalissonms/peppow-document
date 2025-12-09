@@ -8,9 +8,9 @@ import { normalizeTables } from "@/utils/normalizeTables";
 import { applyLogoContainer } from "@/utils/template";
 import { BrandConfig } from "@/types/ui";
 import { getCachedCustomizedCSS } from "@/lib/styleGenerator";
-import { enhanceHeadings, mergeClassAttribute } from "@/utils/headingHelpers";
+import { mergeClassAttribute } from "@/utils/headingHelpers";
 
-// Aumenta o limite padrão de 1MB do body parser para evitar 413 com HTML/Base64
+// Limite de body deve ser literal (Next.js não aceita expressões)
 export const config = {
   api: {
     bodyParser: {
@@ -678,7 +678,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const normalizedTables = normalizeTables(processedHtml);
     // Remove estilos inline específicos de tabela para padronizar visual
     const withoutInlineTableStyles = stripTableInlineStyles(normalizedTables);
-    let normalizedHtml = enhanceHeadings(withoutInlineTableStyles);
+    let normalizedHtml = withoutInlineTableStyles;
     // Equivalentes ao styleMap do fluxo DOCX
     normalizedHtml = ensureFirstTagClass(normalizedHtml, 'h1', 'doc-title');
     normalizedHtml = ensureFirstTagClass(normalizedHtml, 'h2', 'subtitle');

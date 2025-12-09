@@ -7,11 +7,11 @@ import path from "path";
 import { normalizeTables } from "@/utils/normalizeTables";
 import { applyLogoContainer } from "@/utils/template";
 
-// Aumenta o limite padrão de 1MB do body parser do Next.js para suportar documentos maiores
+// Limite de body deve ser literal (Next.js não aceita expressões)
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: "6mb",
+      sizeLimit: "10mb",
     },
   },
 };

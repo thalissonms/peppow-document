@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,14 +25,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-[#FFF9D5] min-w-full" suppressHydrationWarning>
+    <html lang="pt-BR" className="bg-[#FFF9D5] min-w-full" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased relative`}
         suppressHydrationWarning
       >
         {/* Top Gradient Line */}
         <div className="absolute top-0 left-0 right-0 h-[5px] bg-linear-to-r from-[#ff5e2b] to-[#ff7e4d] opacity-60" />
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );

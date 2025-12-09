@@ -5,7 +5,6 @@ import path from "node:path";
 import mammoth, { Image as MammothImage } from "mammoth";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import { enhanceHeadings } from "@/utils/headingHelpers";
 
 export const config = {
   api: {
@@ -309,9 +308,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     console.log("[mammoth] html length:", html.length); // tamanho do HTML
     console.log("[mammoth] html:", html); // HTML completo (pode ser grande)
 
-    const enhancedHtml = enhanceHeadings(html);
-    console.log("[enhanced] html:", enhancedHtml);
-
     const isProposal = fields.isProposal === "true";
     const rawId = fields.proposalId?.trim() ?? "";
     const normalizedId = rawId
@@ -325,14 +321,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       : "";
 
     // novo: título a partir do conteúdo
-    const extractedTitle = extractTitleFromHtml(enhancedHtml);
+    const extractedTitle = extractTitleFromHtml(html);
     const fallbackTitle =
       extractedTitle ||
       (isProposal && normalizedId !== "—"
         ? `Proposta ${normalizedId}`
         : "Documento");
 
-    const documentHtml = await buildDocumentHtml(enhancedHtml, {
+    const documentHtml = await buildDocumentHtml(html, {
       headerLabel,
       headerValue: normalizedId,
       validityMessage,

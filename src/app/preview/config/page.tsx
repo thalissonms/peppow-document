@@ -68,20 +68,26 @@ export default function App() {
   const loading = conversionLoading || pdfLoading || aiLoading || previewLoading;
   const error = conversionError || pdfError || aiError || previewError;
   
+  // Mounting state
   useEffect(() => {
     setMounted(true);
+    return () => {
+      // Cleanup any pending timers on unmount
+      if (alertTimerRef.current) {
+        clearTimeout(alertTimerRef.current);
+      }
+    };
   }, []);
 
+  // Auto-dismiss alerts after 5 seconds
   useEffect(() => {
     if (!success && !error) return;
     if (alertTimerRef.current) clearTimeout(alertTimerRef.current);
-    const timer = setTimeout(() => {
+    alertTimerRef.current = setTimeout(() => {
       setSuccess(null);
       setPdfError(null);
       setAiError(null);
     }, 5000);
-    alertTimerRef.current = timer;
-    return () => clearTimeout(timer);
   }, [success, error]);
   const handleFileSelect = async (selectedFile: File) => {
     setFile(selectedFile);
