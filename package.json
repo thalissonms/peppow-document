@@ -10,6 +10,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ckeditor/ckeditor5-build-classic": "^41.4.2",
+    "@ckeditor/ckeditor5-core": "^47.3.0",
     "@fontsource/kanit": "^5.2.8",
     "@lexical/react": "^0.37.0",
     "@radix-ui/react-label": "^2.1.7",
