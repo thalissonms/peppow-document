@@ -336,21 +336,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     // Configuração para funcionar tanto localmente quanto na Vercel
-    const isProduction = process.env.NODE_ENV === "production";
-    let browser;
-    if (isProduction) {
-      browser = await puppeteer.launch({
-        args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
-        executablePath: await chromium.executablePath(),
-        headless: true,
-      });
-    } else {
-      const pptr = await import("puppeteer");
-      browser = await pptr.default.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-    }
+    // Usa sempre puppeteer-core + @sparticuz/chromium (compatível com Vercel)
+    const browser = await puppeteer.launch({
+      args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath: await chromium.executablePath(),
+      headless: true,
+    });
 
     const page = await browser.newPage();
     await page.setContent(documentHtml, { waitUntil: "networkidle0" });
